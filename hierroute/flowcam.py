@@ -44,9 +44,17 @@ def run_name_from_image_file(image_file: str) -> str:
     return MOSAIC_NUMBER.sub("", Path(image_file).stem)
 
 
+DUP_SUFFIX = re.compile(r"_dup\d+$")
+
+
+def strip_dup_suffix(stem: str) -> str:
+    """``'<mosaic>_<pid>_dup2'`` -> ``'<mosaic>_<pid>'`` (see :func:`load_particles`)."""
+    return DUP_SUFFIX.sub("", stem)
+
+
 def run_name_from_crop(crop_name: str) -> str:
     """``'<run>_000012_34.tif'`` -> ``'<run>'``; names that don't follow the convention are returned unchanged."""
-    stem = Path(crop_name).stem
+    stem = strip_dup_suffix(Path(crop_name).stem)
     parts = stem.rsplit("_", 2)
     if len(parts) == 3 and parts[1].isdigit() and parts[2].isdigit():
         return parts[0]
@@ -243,9 +251,20 @@ def load_particles(export_dir: str | Path, csv_dir: str | Path | None = None,
         tables.append(pd.concat([table, metadata.reset_index(drop=True)], axis=1))
 
     particles = pd.concat(tables, ignore_index=True)
-    # The same particle can appear in more than one export CSV (e.g. a partial and a full export).
-    key = ["mosaic_name", "particle_id"] + (["label"] if rules is not None else [])
+    # The same particle can appear in more than one export CSV (e.g. a partial and a full export):
+    # same mosaic, Particle ID and box. Classified exports restart Particle ID per class, so the
+    # same (mosaic, Particle ID) with a different box is a different particle and is kept.
+    key = ["mosaic_name", "particle_id", "x", "y", "w", "h"] + (["label"] if rules is not None else [])
     particles = particles.drop_duplicates(subset=key, keep="first").reset_index(drop=True)
+    # Crop names must be unique within each output folder (class, or run when unlabelled):
+    # a 2nd, 3rd ... particle sharing a name becomes '<mosaic>_<pid>_dup2.tif', '..._dup3.tif'.
+    scope = "label" if rules is not None else "run"
+    rank = particles.groupby([scope, "image_file"], dropna=False, sort=False).cumcount()
+    clash = rank > 0
+    particles.loc[clash, "image_file"] = [
+        f"{name.removesuffix('.tif')}_dup{r + 1}.tif"
+        for name, r in zip(particles.loc[clash, "image_file"], rank[clash])
+    ]
 
     particles["mosaic_path"] = [
         str(_closest(mosaics[name], Path(csv_file))) if name in mosaics else None

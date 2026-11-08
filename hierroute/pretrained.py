@@ -17,6 +17,7 @@ import json
 import os
 import shutil
 import tempfile
+import urllib.error
 import warnings
 from dataclasses import dataclass
 from pathlib import Path
@@ -27,7 +28,7 @@ from .config import HierarchySpec, load_hierarchy
 from .extra_functions import validate_checkpoint
 from .model import HierRouteNet
 
-RELEASE_URL = "https://github.com/atjhin/Hierroute/releases/download/models-v1"
+RELEASE_URL = "https://github.com/atjhin/Hierroute/releases/download/model-v1"
 MODEL_CONFIG_FILE = "model_config.json"
 CHECKPOINT_FILE = "best_model.pt"
 DEFAULT_MODEL = "noise"
@@ -140,7 +141,14 @@ def download(name: str, force: bool = False, progress: bool = True) -> Path:
     with tempfile.NamedTemporaryFile(dir=target.parent, delete=False, suffix=".part") as tmp:
         tmp_path = Path(tmp.name)
     try:
-        torch.hub.download_url_to_file(url, str(tmp_path), progress=progress)
+        try:
+            torch.hub.download_url_to_file(url, str(tmp_path), progress=progress)
+        except (urllib.error.URLError, OSError) as err:
+            raise RuntimeError(
+                f"Could not download the '{name}' weights from {url} ({err}).\n"
+                f"Check the internet connection, or copy {entry['file']} into {target.parent} by hand "
+                "(see 'Offline use' in the README)."
+            ) from err
         actual = _sha256(tmp_path)
         if actual != entry["sha256"]:
             raise RuntimeError(f"Checksum mismatch for {url}: expected {entry['sha256']}, got {actual}")

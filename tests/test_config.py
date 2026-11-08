@@ -142,3 +142,22 @@ class TestTrainConfig:
         path = Path(__file__).resolve().parent.parent / "configs" / f"{name}.yaml"
         config = load_train_config(path)
         load_hierarchy(config["hierarchy"])
+
+
+def test_download_failure_is_readable(monkeypatch, tmp_path):
+    import urllib.error
+    import hierroute.pretrained as pretrained
+
+    def fail(url, dst, progress=True):
+        raise urllib.error.HTTPError(url, 404, "Not Found", None, None)
+
+    monkeypatch.setenv("HIERROUTE_CACHE_DIR", str(tmp_path))
+    monkeypatch.setattr(pretrained.torch.hub, "download_url_to_file", fail)
+    with pytest.raises(RuntimeError, match="Could not download the 'noise' weights"):
+        pretrained.download("noise")
+    assert list(tmp_path.iterdir()) == []            # no partial file left behind
+
+
+def test_release_url_points_at_existing_tag():
+    from hierroute.pretrained import RELEASE_URL
+    assert RELEASE_URL.endswith("/releases/download/model-v1")

@@ -13,7 +13,7 @@ Public API:
 
 Command line: ``hierroute crop | evaluate | train | download`` (see ``hierroute -h``).
 """
-__version__ = "0.1.0"
+__version__ = "0.1.1"
 
 from .model import Expert, HierRouteNet
 from .trainer import Trainer

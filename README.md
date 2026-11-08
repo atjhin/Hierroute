@@ -174,7 +174,9 @@ hierroute evaluate crops/ --labelled --folder-map my_folders.yaml --out results/
 ### `hierroute crop`
 
 - One `.tif` per particle: `<out>/<class>/<mosaic name>_<Particle ID>.tif`, or `<out>/<run>/...`
-  with `--unlabelled`.
+  with `--unlabelled`. Classified FlowCam exports restart `Particle ID` for each class, so with
+  `--unlabelled` two different particles can share a name. The second one is saved as
+  `..._<Particle ID>_dup2.tif`.
 - `manifest.csv` with one row per particle. It records where the crop was written, its status
   (`written`, `exists`, `missing mosaic`, `zero-size box`, `ignored class`), whether the box ran past
   the mosaic edge, and every FlowCam measurement as a `csv_*` column.

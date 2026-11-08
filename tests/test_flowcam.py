@@ -84,3 +84,28 @@ def test_write_crops_by_run_flags_out_of_bounds(flowcam_export, tmp_path):
 def test_missing_label_column(flowcam_export):
     with pytest.raises(ValueError, match="Label column"):
         load_particles(flowcam_export, rules=ClassRules(label_column="Species"))
+
+
+def test_particle_ids_restart_per_class(flowcam_export, tmp_path):
+    """Classified exports restart Particle ID per class: same (mosaic, Particle ID), different boxes."""
+    csv_path = flowcam_export / "runA" / "runA.csv"
+    df = pd.read_csv(csv_path)
+    extra = df.iloc[[0]].copy()                      # same mosaic + Particle ID as the first Cat ...
+    extra[["Class", "Image X", "Image Y"]] = ["Dog", 120, 20]   # ... but another class and box
+    exact_copy = df.iloc[[1]].copy()                 # a true duplicate (e.g. a second export CSV)
+    pd.concat([df, extra, exact_copy]).to_csv(csv_path, index=False)
+
+    labelled = load_particles(flowcam_export, rules=ClassRules()).particles
+    assert len(labelled) == 9                        # exact copy dropped, different-box particle kept
+    assert not labelled.duplicated(["label", "image_file"]).any()   # unique within each class folder
+    assert not labelled["image_file"].str.contains("_dup").any()   # so no suffix needed
+
+    unlabelled = load_particles(flowcam_export).particles
+    assert len(unlabelled) == 9
+    assert unlabelled["image_file"].is_unique
+    assert "runA_000001_1_dup2.tif" in set(unlabelled["image_file"])
+    assert run_name_from_crop("runA_000001_1_dup2.tif") == "runA"
+
+    manifest = write_crops(load_particles(flowcam_export), tmp_path / "crops", by="run", workers=1)
+    assert (manifest["crop_status"] == "written").all()
+    assert len(list((tmp_path / "crops" / "runA").glob("*.tif"))) == 9

@@ -27,7 +27,7 @@ from torch.utils.data import DataLoader
 
 from . import grading, plotting
 from .flowcam import (ClassRules, MosaicCropDataset, collate_mosaics, csv_column_to_snake_case,
-                      find_flowcam_csvs, load_particles, read_flowcam_csv, run_name_from_crop)
+                      find_flowcam_csvs, load_particles, read_flowcam_csv, run_name_from_crop, strip_dup_suffix)
 from .inference import CropDataset, Predictor, eval_transform, find_crops, level_columns
 from .pretrained import PRETRAINED, load_model
 
@@ -162,7 +162,7 @@ def _csv_metadata_for_crops(samples: pd.DataFrame, opts: EvaluateOptions) -> pd.
     rows = []
     actual = samples["actual_class"] if "actual_class" in samples else [None] * len(samples)
     for image_file, actual_class in zip(samples["image_file"], actual):
-        stem, _, pid = Path(image_file).stem.rpartition("_")
+        stem, _, pid = strip_dup_suffix(Path(image_file).stem).rpartition("_")
         candidates = index.get((stem + ".tif", int(pid)), []) if pid.isdigit() else []
         match = next((rec for label, rec in candidates if actual_class is not None and label == actual_class), None)
         if match is None and len(candidates) == 1:
