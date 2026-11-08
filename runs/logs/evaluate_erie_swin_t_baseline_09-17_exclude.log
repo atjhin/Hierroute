@@ -1,0 +1,16 @@
+Excluding samples from flagged CSV_Data runs: ['20240430_Erie_WMS0504_2mm_Rep3', '20240514_Erie_COS026_2mm_Rep2']
+Erie: Manually Classified crops found: 43907
+Using device: cuda | backbone: swin_t | thresholds: (0.98, 0.995, 0.99)
+Loaded checkpoint: /home/tjhinale/repo/Zooplankton_Classification/training_result/mnr/swin_t_cnn_baseline_09-17/best_model.pt
+Ran inference on 43907 images (42357 with a taxonomy match)
+Saved -> /home/tjhinale/repo/Zooplankton_Classification/runs/inference_results/erie/erie_test_data_swin_t_cnn_baseline_09-17_exclude/predictions.csv
+Saved -> /home/tjhinale/repo/Zooplankton_Classification/runs/inference_results/erie/erie_test_data_swin_t_cnn_baseline_09-17_exclude/top_predictions_breakdown.png
+Saved -> /home/tjhinale/repo/Zooplankton_Classification/runs/inference_results/erie/erie_test_data_swin_t_cnn_baseline_09-17_exclude/ambiguous_class_summary.png
+Saved -> /home/tjhinale/repo/Zooplankton_Classification/runs/inference_results/erie/erie_test_data_swin_t_cnn_baseline_09-17_exclude/leaf_accuracy.png
+Saved -> /home/tjhinale/repo/Zooplankton_Classification/runs/inference_results/erie/erie_test_data_swin_t_cnn_baseline_09-17_exclude/leaf_accuracy_capped.png
+Saved -> /home/tjhinale/repo/Zooplankton_Classification/runs/inference_results/erie/erie_test_data_swin_t_cnn_baseline_09-17_exclude/id_outcomes_stacked_bar.png
+Saved -> /home/tjhinale/repo/Zooplankton_Classification/runs/inference_results/erie/erie_test_data_swin_t_cnn_baseline_09-17_exclude/id_outcomes_stacked_bar_by_sample.png
+Saved -> /home/tjhinale/repo/Zooplankton_Classification/runs/inference_results/erie/erie_test_data_swin_t_cnn_baseline_09-17_exclude/id_outcomes_table.png
+Saved -> /home/tjhinale/repo/Zooplankton_Classification/runs/inference_results/erie/erie_test_data_swin_t_cnn_baseline_09-17_exclude/id_outcomes_table_capped.png
+
+All outputs saved under /home/tjhinale/repo/Zooplankton_Classification/runs/inference_results/erie/erie_test_data_swin_t_cnn_baseline_09-17_exclude

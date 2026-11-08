@@ -339,6 +339,7 @@ class Trainer:
         mismatch_results = self.count_mismatches(model, all_pred_paths)
 
         if save and self.model_dir is not None:
+            os.makedirs(self.model_dir, exist_ok=True)
             # Per-level aligned arrays for confusion matrices in Visualize
             level_arrays = Trainer._get_level_predictions(model, all_pred_paths, all_true_ids)
             save_dict = {

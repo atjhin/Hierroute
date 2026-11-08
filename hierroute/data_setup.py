@@ -16,6 +16,85 @@ import copy
 import torch.nn.functional as F
 
 
+def _seed_worker(worker_id):
+    """
+    DataLoader worker_init_fn for num_workers > 0. On Linux's default 'fork' start
+    method, worker processes inherit an identical copy of the parent's global
+    random/numpy RNG state at fork time -- without reseeding, transforms that read
+    from those global RNGs (e.g. RandomBackgroundNoise's `random.random() < p` gate)
+    can produce correlated/duplicated decisions across workers. torch already seeds
+    its own per-worker RNG uniquely (torch.initial_seed()); this extends that same
+    unique-per-worker seed to stdlib random and numpy, which torch doesn't touch.
+    """
+    seed = torch.initial_seed() % 2**32
+    random.seed(seed)
+    np.random.seed(seed)
+
+
+def load_excluded_filenames(log_path):
+
+    """
+    Parses a Messy_background/moved_images/log.md-style exclusion log and returns the
+    set of (class_name, filename) pairs that must be excluded from the base training
+    directory, so a held-out messy-background evaluation set never overlaps with what
+    the model was trained on.
+
+    Two kinds of log sections are recognised:
+      - '### Moved files' (written by move_to_messy_background.py): the (Class,
+        Filename) pair naming a file physically moved out of the base directory.
+        These are already absent on disk (moved, not copied) by the time training
+        runs, but are still included here for a complete, auditable exclusion set.
+      - '### Regenerated files' (written by regenerate_messy_background_dirt.py):
+        since a moved file's original clean pixels no longer exist, that script
+        re-dirtied a *different*, still-present clean image per slot instead -- the
+        "Source Clean Filename" column. Those substitute source images ARE still in
+        the base directory and must be excluded too, or the model would train on the
+        exact same photo it's later evaluated against (dirtied) in Messy_background.
+
+    The log is append-only across script runs, so there may be more than one section
+    of either kind. Filenames are not guaranteed unique across different class
+    folders in this dataset, so exclusion is scoped per (class, filename) pair, not
+    filename alone.
+
+    Args:
+        log_path (str): Path to the markdown log file.
+
+    Returns:
+        set[tuple[str, str]]: (class_name, filename) pairs to exclude.
+    """
+
+    if not os.path.exists(log_path):
+        raise FileNotFoundError(
+            f"exclude_log_path was set to '{log_path}' but no such file exists. "
+            "Refusing to silently skip the exclusion filter."
+        )
+
+    with open(log_path) as f:
+        content = f.read()
+
+    excluded = set()
+
+    def parse_table_rows(section_marker, filename_col_idx):
+        for section in content.split(section_marker)[1:]:
+            table_text = section.split('\n## ')[0]
+            for line in table_text.splitlines():
+                line = line.strip()
+                if not line.startswith('|'):
+                    continue
+                cols = [c.strip() for c in line.strip('|').split('|')]
+                if len(cols) <= filename_col_idx:
+                    continue
+                class_name, filename = cols[0], cols[filename_col_idx]
+                if class_name == 'Class' or set(class_name) == {'-'}:
+                    continue
+                excluded.add((class_name, filename))
+
+    parse_table_rows('### Moved files', filename_col_idx=1)
+    parse_table_rows('### Regenerated files', filename_col_idx=2)
+
+    return excluded
+
+
 class ImageDataset(Dataset):
 
     """
@@ -41,10 +120,21 @@ class ImageDataset(Dataset):
             on-disk folder names.  Use this when a single class spans multiple directories
             (e.g. ``{'Guinardia': ['Guinardia_delicatula', 'Guinardia_flaccida']}``).
             Folders are pooled before the per-class cap is applied. Defaults to ``{}``.
+        exclude_log_path (str, optional): Path to a moved-images log (see
+            load_excluded_filenames) whose (class, filename) pairs are excluded from
+            this dataset -- for keeping a held-out messy-background evaluation set
+            (and its regeneration sources) from leaking into training. Defaults to
+            None (no exclusion).
+        uncapped_subdirectories (list of str, optional): Subdirectories whose images are
+            always included in full, added on top of the per-class cap rather than
+            competing for it (e.g. a small, newly annotated batch that would otherwise be
+            mostly sampled out of a large pooled class). Kept out of the capped pool, so
+            the capped sample is unchanged by adding them. Defaults to None.
 
     Attributes:
         data_directory (str): Path to the dataset root directory.
         data_subdirectories (list of str): Subdirectories with additional images.
+        uncapped_subdirectories (list of str): Subdirectories included in full on top of the cap.
         seed (int): Random seed used for sampling.
         class_names (list): Sorted list of class names included in the dataset.
         class_sizes (torch.Tensor): Tensor of the actual sampled size per class.
@@ -55,18 +145,24 @@ class ImageDataset(Dataset):
         image_transforms (callable or None): Image transformations applied during training or inference.
         format_file (str): Format of images files. Default: '.tif'
         class_folder_map (dict): Mapping from logical class name to disk folder name(s).
+        excluded_counts (dict): Number of images excluded per class via exclude_log_path.
     """
 
     def __init__(self, data_directory, data_subdirectories: list = None, class_names: list = None,
                  class_sizes: list = None, class_ids: list = None, max_class_size: int = 10000,
                  image_resolution: int = 28, image_transforms = None, seed: int = 666,
-                 format_file = '.tif', class_folder_map: dict = None):
-        
+                 format_file = '.tif', class_folder_map: dict = None, exclude_log_path: str = None,
+                 uncapped_subdirectories: list = None):
+
         self.data_directory = data_directory
         self.data_subdirectories = ['']
+        self.uncapped_subdirectories = list(uncapped_subdirectories or [])
         self.seed = seed
         self.class_names = class_names
         self.class_folder_map = class_folder_map or {}
+        self.excluded_counts = {}
+
+        excluded_filenames = load_excluded_filenames(exclude_log_path) if exclude_log_path else set()
 
         set_seed(seed)
 
@@ -101,23 +197,49 @@ class ImageDataset(Dataset):
 
             folder_names = self.class_folder_map.get(class_name, [class_name])
 
-            for data_subdirectory in self.data_subdirectories:
+            for data_subdirectory in self.data_subdirectories + self.uncapped_subdirectories:
+                uncapped = data_subdirectory in self.uncapped_subdirectories
                 for folder_name in folder_names:
                     class_directory = os.path.join(data_directory, data_subdirectory, folder_name)
 
                     if os.path.isdir(class_directory):
                         class_paths.extend(
-                            [os.path.join(class_directory, filename) for filename in os.listdir(class_directory)]
+                            (folder_name, os.path.join(class_directory, filename), uncapped)
+                            for filename in os.listdir(class_directory)
                         )
 
-            # Determine new class size and sample images, only include .tif files
-            class_idx = class_ids.index(class_id)
+            if excluded_filenames:
+                before_exclusion = len(class_paths)
+                # Match against the specific on-disk folder_name each path actually came
+                # from, not any folder_name in the pool -- pooled folders can share
+                # filenames (e.g. Fiber_Squiggly and Fiber_Hairlike both use the same
+                # capture-run naming convention), so matching broadly would wrongly
+                # exclude an unrelated same-named file sitting in a sibling folder.
+                class_paths = [
+                    (folder_name, p, uncapped) for folder_name, p, uncapped in class_paths
+                    if (folder_name, os.path.basename(p)) not in excluded_filenames
+                ]
+                n_excluded = before_exclusion - len(class_paths)
+                if n_excluded > 0:
+                    print(f'Excluded {n_excluded} images from class "{class_name}" per {exclude_log_path}')
+                    self.excluded_counts[class_name] = n_excluded
+
+            uncapped_paths = sorted(p for _, p, uncapped in class_paths if uncapped)
+            class_paths = [p for _, p, uncapped in class_paths if not uncapped]
+
+            # Determine new class size and sample images, only include .tif files.
+            # Index into self.class_ids (sorted alongside self.class_names/self.class_sizes),
+            # not the caller's unsorted class_ids, so each size is stored on its own class.
+            class_idx = self.class_ids.index(class_id)
             new_class_size = min(self.class_sizes[class_idx], len(class_paths))
 
             random.seed(self.seed)
             sampled_paths = random.sample(class_paths, new_class_size)
-            
-            for image_path in sampled_paths:
+
+            # Uncapped subdirectories are added in full on top of the capped sample
+            new_class_size += len(uncapped_paths)
+
+            for image_path in sampled_paths + uncapped_paths:
                 if image_path.lower().endswith(format_file):
                     try:
                         with Image.open(image_path) as img:
@@ -130,7 +252,10 @@ class ImageDataset(Dataset):
 
             self.class_sizes[class_idx] = new_class_size
             self.labels.extend([class_name] * new_class_size)
-        
+
+        if self.excluded_counts:
+            print(f'Total excluded across all classes: {sum(self.excluded_counts.values())}')
+
         # Other class initializations
         self.image_resolution = image_resolution
         self.image_transforms = image_transforms
@@ -317,7 +442,8 @@ class ImageDataset(Dataset):
     
     def create_dataloaders(self, batch_size: int, train_indices, val_indices, test_indices,
                            image_transforms: transforms.Compose = None, transform_val: bool = False,
-                           train_sample_weights: torch.tensor = None, balanced: bool = False):
+                           train_sample_weights: torch.tensor = None, balanced: bool = False,
+                           num_workers: int = 0, pin_memory: bool = True):
 
         """
         Creates the train, validatinon and test DataLoaders required for training a PyTorch model.
@@ -332,6 +458,9 @@ class ImageDataset(Dataset):
             transform_val (bool): Specifies whether to apply train image transformations to the validation subset.
             train_sample_weights (torch.tensor, optional): Contains weights for each sample in the train subset.
             balanced (bool): If True and train_sample_weights is None, auto-computes inverse-frequency weights.
+            num_workers (int): Subprocesses per DataLoader for parallel data loading/augmentation.
+                Defaults to 0 (single-process, loads in the main training loop).
+            pin_memory (bool): Use page-locked host memory for faster host->GPU transfer.
         """
 
         if balanced and train_sample_weights is None:
@@ -352,27 +481,37 @@ class ImageDataset(Dataset):
         else:
             train_dataset = Subset(self, train_indices)
             val_dataset = Subset(self, val_indices)
-        
+
         test_dataset = Subset(self, test_indices)
 
+        persistent_workers = num_workers > 0
+
         if train_sample_weights is None:
-            train_loader = DataLoader(train_dataset, batch_size = batch_size, shuffle = True, 
-                generator = torch.Generator().manual_seed(self.seed)
+            train_loader = DataLoader(train_dataset, batch_size = batch_size, shuffle = True,
+                generator = torch.Generator().manual_seed(self.seed),
+                num_workers = num_workers, pin_memory = pin_memory,
+                persistent_workers = persistent_workers, worker_init_fn = _seed_worker,
             )
         else:
             train_loader = DataLoader(
-                train_dataset, batch_size = batch_size, 
-                sampler = WeightedRandomSampler(train_sample_weights, num_samples = len(train_sample_weights), replacement = True)
+                train_dataset, batch_size = batch_size,
+                sampler = WeightedRandomSampler(train_sample_weights, num_samples = len(train_sample_weights), replacement = True),
+                num_workers = num_workers, pin_memory = pin_memory,
+                persistent_workers = persistent_workers, worker_init_fn = _seed_worker,
             )
 
         val_loader = DataLoader(
-            val_dataset, batch_size = batch_size, sampler = SequentialSampler(val_dataset)
+            val_dataset, batch_size = batch_size, sampler = SequentialSampler(val_dataset),
+            num_workers = num_workers, pin_memory = pin_memory,
+            persistent_workers = persistent_workers, worker_init_fn = _seed_worker,
         )
         test_loader = DataLoader(
-            test_dataset, batch_size = batch_size, sampler = SequentialSampler(test_dataset)
+            test_dataset, batch_size = batch_size, sampler = SequentialSampler(test_dataset),
+            num_workers = num_workers, pin_memory = pin_memory,
+            persistent_workers = persistent_workers, worker_init_fn = _seed_worker,
         )
 
-        return train_loader, val_loader, test_loader            
+        return train_loader, val_loader, test_loader
     
 
 
@@ -721,7 +860,8 @@ class HierImageDataset(Dataset):
     def create_dataloaders(
         self, batch_size: int, train_indices, val_indices, test_indices,
         image_transforms: transforms.Compose = None, transform_val: bool = False,
-        train_sample_weights: torch.tensor = None, balanced: bool = False
+        train_sample_weights: torch.tensor = None, balanced: bool = False,
+        num_workers: int = 0, pin_memory: bool = True,
     ):
 
         """
@@ -737,6 +877,9 @@ class HierImageDataset(Dataset):
             transform_val (bool): Specifies whether to apply train image transformations to the validation subset.
             train_sample_weights (torch.tensor, optional): Contains weights for each sample in the train subset.
             balanced (bool): If True and train_sample_weights is None, auto-computes inverse-frequency weights.
+            num_workers (int): Subprocesses per DataLoader for parallel data loading/augmentation.
+                Defaults to 0 (single-process, loads in the main training loop).
+            pin_memory (bool): Use page-locked host memory for faster host->GPU transfer.
         """
 
         if balanced and train_sample_weights is None:
@@ -757,27 +900,37 @@ class HierImageDataset(Dataset):
         else:
             train_dataset = Subset(self, train_indices)
             val_dataset = Subset(self, val_indices)
-        
+
         test_dataset = Subset(self, test_indices)
 
+        persistent_workers = num_workers > 0
+
         if train_sample_weights is None:
-            train_loader = DataLoader(train_dataset, batch_size = batch_size, shuffle = True, 
-                collate_fn=self.collate_fn,generator = torch.Generator().manual_seed(self.seed)
+            train_loader = DataLoader(train_dataset, batch_size = batch_size, shuffle = True,
+                collate_fn=self.collate_fn, generator = torch.Generator().manual_seed(self.seed),
+                num_workers = num_workers, pin_memory = pin_memory,
+                persistent_workers = persistent_workers, worker_init_fn = _seed_worker,
             )
         else:
             train_loader = DataLoader(
                 train_dataset, batch_size = batch_size, collate_fn=self.collate_fn,
-                sampler = WeightedRandomSampler(train_sample_weights, num_samples = len(train_sample_weights), replacement = True)
+                sampler = WeightedRandomSampler(train_sample_weights, num_samples = len(train_sample_weights), replacement = True),
+                num_workers = num_workers, pin_memory = pin_memory,
+                persistent_workers = persistent_workers, worker_init_fn = _seed_worker,
             )
 
         val_loader = DataLoader(
             val_dataset, batch_size = batch_size, sampler = SequentialSampler(val_dataset),
-            collate_fn=self.collate_fn
+            collate_fn=self.collate_fn,
+            num_workers = num_workers, pin_memory = pin_memory,
+            persistent_workers = persistent_workers, worker_init_fn = _seed_worker,
         )
         test_loader = DataLoader(
             test_dataset, batch_size = batch_size, sampler = SequentialSampler(test_dataset),
-            collate_fn=self.collate_fn
+            collate_fn=self.collate_fn,
+            num_workers = num_workers, pin_memory = pin_memory,
+            persistent_workers = persistent_workers, worker_init_fn = _seed_worker,
         )
 
-        return train_loader, val_loader, test_loader   
+        return train_loader, val_loader, test_loader
         

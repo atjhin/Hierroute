@@ -1,0 +1,55 @@
+Backbone: swin_t | expert: cnn | background noise: False | device: cuda
+[leaves_only] Kept 9254 samples | Removed 0 non-leaf samples
+
+Total Dataset: Size = 9254 | Levels = 1
+all_node_counts: {0: 9254, 1: 3864, 2: 5390}
+
+nodes_by_level: {0: [0], 1: [1, 2]}
+
+
+------------------------Level 0------------------------
+Level: 0 | Class Name: root                 | Class Label:   0 | Type: Parent | Count:   9254 | Prop: 1.00
+
+------------------------Level 1------------------------
+Level: 1 | Class Name: Not Phytoplankton    | Class Label:   1 | Type: Leaf   | Count:   3864 | Prop: 0.42
+Level: 1 | Class Name: Phytoplankton        | Class Label:   2 | Type: Leaf   | Count:   5390 | Prop: 0.58
+Results dir: /home/tjhinale/repo/Zooplankton_Classification/training_result/phytoplankton/swin_t_cnn_baseline_08-29
+Training at device: cuda
+beginning training
+Epoch [1/40] | Train Loss: 0.3428 | Train Acc: 0.8621 | Train F1: 0.8621 | Valid Loss: 0.4405 | Valid Acc: 0.7905 | Valid F1: 0.7904 | Saved best model (val_acc=0.7905)
+Epoch [2/40] | Train Loss: 0.2627 | Train Acc: 0.8950 | Train F1: 0.8950 | Valid Loss: 0.2556 | Valid Acc: 0.8942 | Valid F1: 0.8928 | Saved best model (val_acc=0.8942)
+Epoch [3/40] | Train Loss: 0.2327 | Train Acc: 0.9101 | Train F1: 0.9101 | Valid Loss: 0.2846 | Valid Acc: 0.9017 | Valid F1: 0.8971 | Saved best model (val_acc=0.9017)
+Epoch [4/40] | Train Loss: 0.2016 | Train Acc: 0.9216 | Train F1: 0.9215 | Valid Loss: 0.2165 | Valid Acc: 0.9093 | Valid F1: 0.9083 | Saved best model (val_acc=0.9093)
+Epoch [5/40] | Train Loss: 0.1928 | Train Acc: 0.9282 | Train F1: 0.9282 | Valid Loss: 0.2282 | Valid Acc: 0.9082 | Valid F1: 0.9068
+Epoch [6/40] | Train Loss: 0.1605 | Train Acc: 0.9381 | Train F1: 0.9381 | Valid Loss: 0.1898 | Valid Acc: 0.9363 | Valid F1: 0.9344 | Saved best model (val_acc=0.9363)
+Epoch [7/40] | Train Loss: 0.1520 | Train Acc: 0.9446 | Train F1: 0.9446 | Valid Loss: 0.1999 | Valid Acc: 0.9287 | Valid F1: 0.9256
+Epoch [8/40] | Train Loss: 0.1492 | Train Acc: 0.9458 | Train F1: 0.9458 | Valid Loss: 0.1867 | Valid Acc: 0.9330 | Valid F1: 0.9317
+Epoch [9/40] | Train Loss: 0.1343 | Train Acc: 0.9494 | Train F1: 0.9494 | Valid Loss: 0.1724 | Valid Acc: 0.9276 | Valid F1: 0.9259
+Epoch [10/40] | Train Loss: 0.1347 | Train Acc: 0.9497 | Train F1: 0.9496 | Valid Loss: 0.1705 | Valid Acc: 0.9471 | Valid F1: 0.9457 | Saved best model (val_acc=0.9471)
+Epoch [11/40] | Train Loss: 0.1096 | Train Acc: 0.9619 | Train F1: 0.9618 | Valid Loss: 0.2164 | Valid Acc: 0.9266 | Valid F1: 0.9250
+Epoch [12/40] | Train Loss: 0.1066 | Train Acc: 0.9611 | Train F1: 0.9611 | Valid Loss: 0.2514 | Valid Acc: 0.9276 | Valid F1: 0.9266
+Epoch [13/40] | Train Loss: 0.0932 | Train Acc: 0.9633 | Train F1: 0.9633 | Valid Loss: 0.1949 | Valid Acc: 0.9406 | Valid F1: 0.9385
+Epoch [14/40] | Train Loss: 0.0937 | Train Acc: 0.9683 | Train F1: 0.9683 | Valid Loss: 0.1979 | Valid Acc: 0.9287 | Valid F1: 0.9262
+Epoch [15/40] | Train Loss: 0.0887 | Train Acc: 0.9691 | Train F1: 0.9691 | Valid Loss: 0.2024 | Valid Acc: 0.9298 | Valid F1: 0.9285
+Epoch [16/40] | Train Loss: 0.0823 | Train Acc: 0.9717 | Train F1: 0.9717 | Valid Loss: 0.2976 | Valid Acc: 0.9417 | Valid F1: 0.9401
+Epoch [17/40] | Train Loss: 0.0714 | Train Acc: 0.9744 | Train F1: 0.9744 | Valid Loss: 0.1758 | Valid Acc: 0.9384 | Valid F1: 0.9373
+Epoch [18/40] | Train Loss: 0.0544 | Train Acc: 0.9818 | Train F1: 0.9818 | Valid Loss: 0.2118 | Valid Acc: 0.9352 | Valid F1: 0.9339
+Epoch [19/40] | Train Loss: 0.0585 | Train Acc: 0.9807 | Train F1: 0.9807 | Valid Loss: 0.2279 | Valid Acc: 0.9374 | Valid F1: 0.9354
+Epoch [20/40] | Train Loss: 0.0493 | Train Acc: 0.9849 | Train F1: 0.9849 | Valid Loss: 0.2288 | Valid Acc: 0.9406 | Valid F1: 0.9392
+
+Early stopping at epoch 20 — no improvement for 10 epochs.
+
+Saved to '/home/tjhinale/repo/Zooplankton_Classification/training_result/phytoplankton/swin_t_cnn_baseline_08-29/'
+  best_model.pt   — best checkpoint (epoch 10, val_acc=0.9471)
+  training_info.json — hyperparameters and per-epoch metrics
+Hierarchical Evaluation:
+  Level 1: Acc=0.9244 | F1=0.9229 | Prec=0.9205 | Rec=0.9265 | n=1851
+    Not Phytoplankton      Acc=0.9392 | F1=0.9121 | Prec=0.8864 | Rec=0.9392 | n=773
+    Phytoplankton          Acc=0.9137 | F1=0.9336 | Prec=0.9545 | Rec=0.9137 | n=1078
+
+Structural Consistency:
+  PASSED — all 1851 predictions follow a valid path in the hierarchy
+
+Saved to '/home/tjhinale/repo/Zooplankton_Classification/training_result/phytoplankton/swin_t_cnn_baseline_08-29/'
+  predictions.npz  — leaf predictions + per-level aligned arrays
+  eval_results.json — level and mismatch results

@@ -1,0 +1,108 @@
+Backbone: efficientnet_b0 | expert: cnn | background noise: True
+[leaves_only] Kept 59546 samples | Removed 0 non-leaf samples
+
+Total Dataset: Size = 59546 | Levels = 3
+all_node_counts: {0: 59546, 1: 49546, 3: 26048, 6: 9999, 7: 9999, 8: 6050, 4: 17860, 9: 9950, 10: 3885, 11: 1277, 12: 1918, 13: 830, 5: 5638, 14: 1220, 15: 2483, 16: 799, 17: 1136, 2: 10000}
+
+nodes_by_level: {0: [0], 1: [1, 2], 2: [3, 4, 5], 3: [6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17]}
+
+
+------------------------Level 0------------------------
+Level: 0 | Class Name: root                 | Class Label:   0 | Type: Parent | Count:  59546 | Prop: 1.00
+
+------------------------Level 1------------------------
+Level: 1 | Class Name: Zoop-yes             | Class Label:   1 | Type: Parent | Count:  49546 | Prop: 0.83
+Level: 1 | Class Name: Zoop-No              | Class Label:   2 | Type: Leaf   | Count:  10000 | Prop: 0.17
+
+------------------------Level 2------------------------
+Level: 2 | Class Name: Copepoda             | Class Label:   3 | Type: Parent | Count:  26048 | Prop: 0.44
+Level: 2 | Class Name: Cladocera            | Class Label:   4 | Type: Parent | Count:  17860 | Prop: 0.30
+Level: 2 | Class Name: Rotifer              | Class Label:   5 | Type: Parent | Count:   5638 | Prop: 0.09
+
+------------------------Level 3------------------------
+Level: 3 | Class Name: Cyclopoid            | Class Label:   6 | Type: Leaf   | Count:   9999 | Prop: 0.17
+Level: 3 | Class Name: Calanoid             | Class Label:   7 | Type: Leaf   | Count:   9999 | Prop: 0.17
+Level: 3 | Class Name: Nauplius_Copepod     | Class Label:   8 | Type: Leaf   | Count:   6050 | Prop: 0.10
+Level: 3 | Class Name: Bosmina              | Class Label:   9 | Type: Leaf   | Count:   9950 | Prop: 0.17
+Level: 3 | Class Name: Daphnia              | Class Label:  10 | Type: Leaf   | Count:   3885 | Prop: 0.07
+Level: 3 | Class Name: Holopedium           | Class Label:  11 | Type: Leaf   | Count:   1277 | Prop: 0.02
+Level: 3 | Class Name: Chydorus             | Class Label:  12 | Type: Leaf   | Count:   1918 | Prop: 0.03
+Level: 3 | Class Name: Diaphonosoma         | Class Label:  13 | Type: Leaf   | Count:    830 | Prop: 0.01
+Level: 3 | Class Name: Trichocerca          | Class Label:  14 | Type: Leaf   | Count:   1220 | Prop: 0.02
+Level: 3 | Class Name: Asplanchna           | Class Label:  15 | Type: Leaf   | Count:   2483 | Prop: 0.04
+Level: 3 | Class Name: Conochilus           | Class Label:  16 | Type: Leaf   | Count:    799 | Prop: 0.01
+Level: 3 | Class Name: Kellicottia          | Class Label:  17 | Type: Leaf   | Count:   1136 | Prop: 0.02
+Training at device: cuda
+beginning training
+Epoch [1/40] | Train Loss: 0.0609 | Train Acc: 0.8435 | Train F1: 0.8429 | Valid Loss: 0.0399 | Valid Acc: 0.8974 | Valid F1: 0.8962 | Saved best model (val_acc=0.8974)
+Epoch [2/40] | Train Loss: 0.0255 | Train Acc: 0.9397 | Train F1: 0.9395 | Valid Loss: 0.0251 | Valid Acc: 0.9392 | Valid F1: 0.9337 | Saved best model (val_acc=0.9392)
+Epoch [3/40] | Train Loss: 0.0189 | Train Acc: 0.9564 | Train F1: 0.9566 | Valid Loss: 0.0225 | Valid Acc: 0.9493 | Valid F1: 0.9426 | Saved best model (val_acc=0.9493)
+Epoch [4/40] | Train Loss: 0.0147 | Train Acc: 0.9674 | Train F1: 0.9673 | Valid Loss: 0.0211 | Valid Acc: 0.9506 | Valid F1: 0.9441 | Saved best model (val_acc=0.9506)
+Epoch [5/40] | Train Loss: 0.0135 | Train Acc: 0.9695 | Train F1: 0.9694 | Valid Loss: 0.0218 | Valid Acc: 0.9516 | Valid F1: 0.9499 | Saved best model (val_acc=0.9516)
+Epoch [6/40] | Train Loss: 0.0116 | Train Acc: 0.9742 | Train F1: 0.9741 | Valid Loss: 0.0211 | Valid Acc: 0.9537 | Valid F1: 0.9513 | Saved best model (val_acc=0.9537)
+Epoch [7/40] | Train Loss: 0.0101 | Train Acc: 0.9776 | Train F1: 0.9776 | Valid Loss: 0.0162 | Valid Acc: 0.9639 | Valid F1: 0.9602 | Saved best model (val_acc=0.9639)
+Epoch [8/40] | Train Loss: 0.0096 | Train Acc: 0.9787 | Train F1: 0.9786 | Valid Loss: 0.0204 | Valid Acc: 0.9542 | Valid F1: 0.9488
+Epoch [9/40] | Train Loss: 0.0093 | Train Acc: 0.9796 | Train F1: 0.9796 | Valid Loss: 0.0176 | Valid Acc: 0.9610 | Valid F1: 0.9551
+Epoch [10/40] | Train Loss: 0.0084 | Train Acc: 0.9813 | Train F1: 0.9813 | Valid Loss: 0.0213 | Valid Acc: 0.9587 | Valid F1: 0.9597
+Epoch [11/40] | Train Loss: 0.0081 | Train Acc: 0.9820 | Train F1: 0.9819 | Valid Loss: 0.0152 | Valid Acc: 0.9694 | Valid F1: 0.9691 | Saved best model (val_acc=0.9694)
+Epoch [12/40] | Train Loss: 0.0071 | Train Acc: 0.9844 | Train F1: 0.9844 | Valid Loss: 0.0145 | Valid Acc: 0.9691 | Valid F1: 0.9714
+Epoch [13/40] | Train Loss: 0.0072 | Train Acc: 0.9837 | Train F1: 0.9837 | Valid Loss: 0.0166 | Valid Acc: 0.9659 | Valid F1: 0.9666
+Epoch [14/40] | Train Loss: 0.0062 | Train Acc: 0.9865 | Train F1: 0.9866 | Valid Loss: 0.0151 | Valid Acc: 0.9718 | Valid F1: 0.9701 | Saved best model (val_acc=0.9718)
+Epoch [15/40] | Train Loss: 0.0055 | Train Acc: 0.9880 | Train F1: 0.9880 | Valid Loss: 0.0165 | Valid Acc: 0.9694 | Valid F1: 0.9634
+Epoch [16/40] | Train Loss: 0.0052 | Train Acc: 0.9885 | Train F1: 0.9886 | Valid Loss: 0.0144 | Valid Acc: 0.9704 | Valid F1: 0.9703
+Epoch [17/40] | Train Loss: 0.0048 | Train Acc: 0.9901 | Train F1: 0.9901 | Valid Loss: 0.0142 | Valid Acc: 0.9726 | Valid F1: 0.9731
+Epoch [18/40] | Train Loss: 0.0049 | Train Acc: 0.9892 | Train F1: 0.9892 | Valid Loss: 0.0138 | Valid Acc: 0.9726 | Valid F1: 0.9729
+Epoch [19/40] | Train Loss: 0.0041 | Train Acc: 0.9915 | Train F1: 0.9915 | Valid Loss: 0.0147 | Valid Acc: 0.9740 | Valid F1: 0.9734 | Saved best model (val_acc=0.9740)
+Epoch [20/40] | Train Loss: 0.0041 | Train Acc: 0.9910 | Train F1: 0.9910 | Valid Loss: 0.0136 | Valid Acc: 0.9753 | Valid F1: 0.9730 | Saved best model (val_acc=0.9753)
+Epoch [21/40] | Train Loss: 0.0035 | Train Acc: 0.9918 | Train F1: 0.9919 | Valid Loss: 0.0148 | Valid Acc: 0.9726 | Valid F1: 0.9697
+Epoch [22/40] | Train Loss: 0.0038 | Train Acc: 0.9923 | Train F1: 0.9924 | Valid Loss: 0.0145 | Valid Acc: 0.9757 | Valid F1: 0.9758
+Epoch [23/40] | Train Loss: 0.0032 | Train Acc: 0.9934 | Train F1: 0.9934 | Valid Loss: 0.0140 | Valid Acc: 0.9736 | Valid F1: 0.9718
+Epoch [24/40] | Train Loss: 0.0029 | Train Acc: 0.9937 | Train F1: 0.9936 | Valid Loss: 0.0137 | Valid Acc: 0.9741 | Valid F1: 0.9739
+Epoch [25/40] | Train Loss: 0.0025 | Train Acc: 0.9947 | Train F1: 0.9946 | Valid Loss: 0.0119 | Valid Acc: 0.9778 | Valid F1: 0.9802 | Saved best model (val_acc=0.9778)
+Epoch [26/40] | Train Loss: 0.0024 | Train Acc: 0.9946 | Train F1: 0.9946 | Valid Loss: 0.0143 | Valid Acc: 0.9757 | Valid F1: 0.9746
+Epoch [27/40] | Train Loss: 0.0023 | Train Acc: 0.9950 | Train F1: 0.9950 | Valid Loss: 0.0146 | Valid Acc: 0.9763 | Valid F1: 0.9777
+Epoch [28/40] | Train Loss: 0.0019 | Train Acc: 0.9958 | Train F1: 0.9958 | Valid Loss: 0.0142 | Valid Acc: 0.9780 | Valid F1: 0.9756
+Epoch [29/40] | Train Loss: 0.0020 | Train Acc: 0.9954 | Train F1: 0.9954 | Valid Loss: 0.0145 | Valid Acc: 0.9758 | Valid F1: 0.9751
+Epoch [30/40] | Train Loss: 0.0018 | Train Acc: 0.9962 | Train F1: 0.9962 | Valid Loss: 0.0131 | Valid Acc: 0.9763 | Valid F1: 0.9770
+Epoch [31/40] | Train Loss: 0.0014 | Train Acc: 0.9969 | Train F1: 0.9969 | Valid Loss: 0.0155 | Valid Acc: 0.9753 | Valid F1: 0.9734
+Epoch [32/40] | Train Loss: 0.0013 | Train Acc: 0.9971 | Train F1: 0.9971 | Valid Loss: 0.0147 | Valid Acc: 0.9768 | Valid F1: 0.9769
+Epoch [33/40] | Train Loss: 0.0012 | Train Acc: 0.9975 | Train F1: 0.9975 | Valid Loss: 0.0138 | Valid Acc: 0.9795 | Valid F1: 0.9803 | Saved best model (val_acc=0.9795)
+Epoch [34/40] | Train Loss: 0.0010 | Train Acc: 0.9981 | Train F1: 0.9981 | Valid Loss: 0.0138 | Valid Acc: 0.9773 | Valid F1: 0.9791
+Epoch [35/40] | Train Loss: 0.0011 | Train Acc: 0.9975 | Train F1: 0.9975 | Valid Loss: 0.0152 | Valid Acc: 0.9782 | Valid F1: 0.9794
+Epoch [36/40] | Train Loss: 0.0012 | Train Acc: 0.9975 | Train F1: 0.9975 | Valid Loss: 0.0147 | Valid Acc: 0.9770 | Valid F1: 0.9769
+Epoch [37/40] | Train Loss: 0.0010 | Train Acc: 0.9977 | Train F1: 0.9977 | Valid Loss: 0.0135 | Valid Acc: 0.9772 | Valid F1: 0.9767
+Epoch [38/40] | Train Loss: 0.0011 | Train Acc: 0.9976 | Train F1: 0.9976 | Valid Loss: 0.0135 | Valid Acc: 0.9795 | Valid F1: 0.9788
+Epoch [39/40] | Train Loss: 0.0009 | Train Acc: 0.9978 | Train F1: 0.9978 | Valid Loss: 0.0133 | Valid Acc: 0.9778 | Valid F1: 0.9789
+Epoch [40/40] | Train Loss: 0.0009 | Train Acc: 0.9980 | Train F1: 0.9980 | Valid Loss: 0.0143 | Valid Acc: 0.9780 | Valid F1: 0.9787
+
+Saved to 'training_result/mnr/efficientnet_b0_cnn_noise_08-25/'
+  best_model.pt   — best checkpoint (epoch 33, val_acc=0.9795)
+  training_info.json — hyperparameters and per-epoch metrics
+Hierarchical Evaluation:
+  Level 1: Acc=0.9987 | F1=0.9976 | Prec=0.9984 | Rec=0.9968 | n=11910
+    Zoop-yes               Acc=0.9996 | F1=0.9992 | Prec=0.9988 | Rec=0.9996 | n=9910
+    Zoop-No                Acc=0.9940 | F1=0.9960 | Prec=0.9980 | Rec=0.9940 | n=2000
+  Level 2: Acc=0.9954 | F1=0.9959 | Prec=0.9959 | Rec=0.9958 | n=9910
+    Copepoda               Acc=0.9965 | F1=0.9962 | Prec=0.9958 | Rec=0.9965 | n=5210
+    Cladocera              Acc=0.9927 | F1=0.9941 | Prec=0.9955 | Rec=0.9927 | n=3572
+    Rotifer                Acc=0.9982 | F1=0.9973 | Prec=0.9965 | Rec=0.9982 | n=1128
+  Level 3: Acc=0.9793 | F1=0.9829 | Prec=0.9817 | Rec=0.9841 | n=9910
+    Cyclopoid              Acc=0.9670 | F1=0.9685 | Prec=0.9699 | Rec=0.9670 | n=2000
+    Calanoid               Acc=0.9670 | F1=0.9670 | Prec=0.9670 | Rec=0.9670 | n=2000
+    Nauplius_Copepod       Acc=0.9975 | F1=0.9934 | Prec=0.9893 | Rec=0.9975 | n=1210
+    Bosmina                Acc=0.9824 | F1=0.9866 | Prec=0.9909 | Rec=0.9824 | n=1990
+    Daphnia                Acc=0.9794 | F1=0.9800 | Prec=0.9807 | Rec=0.9794 | n=777
+    Holopedium             Acc=0.9647 | F1=0.9647 | Prec=0.9647 | Rec=0.9647 | n=255
+    Chydorus               Acc=0.9974 | F1=0.9897 | Prec=0.9821 | Rec=0.9974 | n=384
+    Diaphonosoma           Acc=0.9639 | F1=0.9581 | Prec=0.9524 | Rec=0.9639 | n=166
+    Trichocerca            Acc=0.9918 | F1=0.9898 | Prec=0.9878 | Rec=0.9918 | n=244
+    Asplanchna             Acc=0.9980 | F1=0.9970 | Prec=0.9960 | Rec=0.9980 | n=497
+    Conochilus             Acc=1.0000 | F1=1.0000 | Prec=1.0000 | Rec=1.0000 | n=160
+    Kellicottia            Acc=1.0000 | F1=1.0000 | Prec=1.0000 | Rec=1.0000 | n=227
+
+Structural Consistency:
+  PASSED — all 11910 predictions follow a valid path in the hierarchy
+
+Saved to 'training_result/mnr/efficientnet_b0_cnn_noise_08-25/'
+  predictions.npz  — leaf predictions + per-level aligned arrays
+  eval_results.json — level and mismatch results

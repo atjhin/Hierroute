@@ -1,0 +1,100 @@
+BCNN backbone: densenet121 | background noise: False
+Levels: 3 | dim_outputs (coarsest -> finest): [2, 4, 13]
+  level 0 (13): ['Cyclopoid', 'Calanoid', 'Nauplius_Copepod', 'Bosmina', 'Daphnia', 'Holopedium', 'Chydorus', 'Diaphonosoma', 'Trichocerca', 'Asplanchna', 'Conochilus', 'Kellicottia', 'Zoop-No']
+  level 1 (4): ['Copepoda', 'Cladocera', 'Rotifer', 'Zoop-No']
+  level 2 (2): ['Zoop-yes', 'Zoop-No']
+
+Total Dataset: Size = 59546| Levels = 3
+Level: 0 | Class Name: Zoop-yes | Class Label: 0| Count: 49546 | Prop: 0.83
+Level: 0 | Class Name: Zoop-No | Class Label: 1| Count: 10000 | Prop: 0.17
+Level: 1 | Class Name: Copepoda | Class Label: 0| Count: 26048 | Prop: 0.44
+Level: 1 | Class Name: Cladocera | Class Label: 1| Count: 17860 | Prop: 0.30
+Level: 1 | Class Name: Rotifer | Class Label: 2| Count: 5638 | Prop: 0.09
+Level: 1 | Class Name: Zoop-No | Class Label: 3| Count: 10000 | Prop: 0.17
+Level: 2 | Class Name: Cyclopoid | Class Label: 0| Count: 9999 | Prop: 0.17
+Level: 2 | Class Name: Calanoid | Class Label: 1| Count: 9999 | Prop: 0.17
+Level: 2 | Class Name: Nauplius_Copepod | Class Label: 2| Count: 6050 | Prop: 0.10
+Level: 2 | Class Name: Bosmina | Class Label: 3| Count: 9950 | Prop: 0.17
+Level: 2 | Class Name: Daphnia | Class Label: 4| Count: 3885 | Prop: 0.07
+Level: 2 | Class Name: Holopedium | Class Label: 5| Count: 1277 | Prop: 0.02
+Level: 2 | Class Name: Chydorus | Class Label: 6| Count: 1918 | Prop: 0.03
+Level: 2 | Class Name: Diaphonosoma | Class Label: 7| Count: 830 | Prop: 0.01
+Level: 2 | Class Name: Trichocerca | Class Label: 8| Count: 1220 | Prop: 0.02
+Level: 2 | Class Name: Asplanchna | Class Label: 9| Count: 2483 | Prop: 0.04
+Level: 2 | Class Name: Conochilus | Class Label: 10| Count: 799 | Prop: 0.01
+Level: 2 | Class Name: Kellicottia | Class Label: 11| Count: 1136 | Prop: 0.02
+Level: 2 | Class Name: Zoop-No | Class Label: 12| Count: 10000 | Prop: 0.17
+DataLoaders: num_workers=8 | train=41683 val=5954 test=11909
+Using device: cuda
+
+Starting training! Model: densenet121 (ID: 20260825_231007)
+
+Epoch: 1 | train_loss: 0.42659 | test_loss: 0.32197 |train_acc: 0.96445, 0.80924, 0.76754 | test_acc: 0.96227, 0.87965, 0.79588
+Epoch: 2 | train_loss: 0.18355 | test_loss: 0.21273 |train_acc: 0.99022, 0.93919, 0.88103 | test_acc: 0.98870, 0.92503, 0.86303
+Epoch: 3 | train_loss: 0.13851 | test_loss: 0.74598 |train_acc: 0.99207, 0.95509, 0.91232 | test_acc: 0.97689, 0.85140, 0.55502
+Epoch: 4 | train_loss: 0.11113 | test_loss: 0.15086 |train_acc: 0.99322, 0.96441, 0.92921 | test_acc: 0.99069, 0.96027, 0.89013
+Epoch: 5 | train_loss: 0.09436 | test_loss: 0.19400 |train_acc: 0.99474, 0.97086, 0.93941 | test_acc: 0.97756, 0.94166, 0.88082
+Epoch: 6 | train_loss: 0.08798 | test_loss: 0.15658 |train_acc: 0.99351, 0.97333, 0.94442 | test_acc: 0.99136, 0.95229, 0.89777
+Epoch: 7 | train_loss: 0.07923 | test_loss: 0.12320 |train_acc: 0.99504, 0.97464, 0.95082 | test_acc: 0.99053, 0.96509, 0.92138
+Epoch: 8 | train_loss: 0.06863 | test_loss: 0.18695 |train_acc: 0.99511, 0.97902, 0.95729 | test_acc: 0.99235, 0.94082, 0.86469
+Epoch: 9 | train_loss: 0.06400 | test_loss: 0.12126 |train_acc: 0.99597, 0.97989, 0.96043 | test_acc: 0.99418, 0.96393, 0.91722
+Epoch: 10 | train_loss: 0.05991 | test_loss: 0.15202 |train_acc: 0.99557, 0.98132, 0.96372 | test_acc: 0.95695, 0.96759, 0.91539
+Epoch: 11 | train_loss: 0.05549 | test_loss: 0.95461 |train_acc: 0.99585, 0.98286, 0.96622 | test_acc: 0.98853, 0.82945, 0.64694
+Epoch: 12 | train_loss: 0.05001 | test_loss: 0.09258 |train_acc: 0.99607, 0.98446, 0.96877 | test_acc: 0.99584, 0.97756, 0.93418
+Epoch: 13 | train_loss: 0.04544 | test_loss: 0.10304 |train_acc: 0.99645, 0.98576, 0.97187 | test_acc: 0.99318, 0.97191, 0.93900
+Epoch: 14 | train_loss: 0.04780 | test_loss: 0.11258 |train_acc: 0.99559, 0.98451, 0.97242 | test_acc: 0.99535, 0.96559, 0.92985
+Epoch: 15 | train_loss: 0.04075 | test_loss: 0.11334 |train_acc: 0.99691, 0.98902, 0.97399 | test_acc: 0.98886, 0.96642, 0.93933
+Epoch: 16 | train_loss: 0.03616 | test_loss: 0.07638 |train_acc: 0.99712, 0.98873, 0.97663 | test_acc: 0.99468, 0.98039, 0.95479
+Epoch: 17 | train_loss: 0.03943 | test_loss: 0.07943 |train_acc: 0.99693, 0.98809, 0.97520 | test_acc: 0.99584, 0.97889, 0.95379
+Epoch: 18 | train_loss: 0.03470 | test_loss: 0.08091 |train_acc: 0.99666, 0.98942, 0.97925 | test_acc: 0.99468, 0.97955, 0.94930
+Epoch: 19 | train_loss: 0.03232 | test_loss: 0.07604 |train_acc: 0.99688, 0.99008, 0.98052 | test_acc: 0.99501, 0.97706, 0.95529
+Epoch: 20 | train_loss: 0.03101 | test_loss: 0.06972 |train_acc: 0.99700, 0.99080, 0.98104 | test_acc: 0.99551, 0.98271, 0.95196
+Epoch: 21 | train_loss: 0.02900 | test_loss: 0.11036 |train_acc: 0.99664, 0.99147, 0.98254 | test_acc: 0.99285, 0.97241, 0.93068
+Epoch: 22 | train_loss: 0.02751 | test_loss: 0.06710 |train_acc: 0.99700, 0.99264, 0.98390 | test_acc: 0.99584, 0.98521, 0.95811
+Epoch: 23 | train_loss: 0.02212 | test_loss: 0.08101 |train_acc: 0.99787, 0.99391, 0.98600 | test_acc: 0.99518, 0.98421, 0.94498
+Epoch: 24 | train_loss: 0.02436 | test_loss: 0.07058 |train_acc: 0.99734, 0.99358, 0.98521 | test_acc: 0.99485, 0.98554, 0.95296
+Epoch: 25 | train_loss: 0.02184 | test_loss: 0.06149 |train_acc: 0.99756, 0.99427, 0.98724 | test_acc: 0.99634, 0.98720, 0.96177
+Epoch: 26 | train_loss: 0.02100 | test_loss: 0.05956 |train_acc: 0.99813, 0.99391, 0.98775 | test_acc: 0.99651, 0.98537, 0.96343
+Epoch: 27 | train_loss: 0.01751 | test_loss: 0.06573 |train_acc: 0.99777, 0.99557, 0.98918 | test_acc: 0.99684, 0.98454, 0.95595
+Epoch: 28 | train_loss: 0.01690 | test_loss: 0.06446 |train_acc: 0.99765, 0.99576, 0.99001 | test_acc: 0.99651, 0.98288, 0.96127
+Epoch: 29 | train_loss: 0.01636 | test_loss: 0.05513 |train_acc: 0.99772, 0.99585, 0.98991 | test_acc: 0.99701, 0.98637, 0.96676
+Epoch: 30 | train_loss: 0.01688 | test_loss: 0.05662 |train_acc: 0.99818, 0.99569, 0.99027 | test_acc: 0.99651, 0.98770, 0.96559
+Epoch: 31 | train_loss: 0.01473 | test_loss: 0.05372 |train_acc: 0.99801, 0.99590, 0.99128 | test_acc: 0.99584, 0.98803, 0.96642
+Epoch: 32 | train_loss: 0.01232 | test_loss: 0.05600 |train_acc: 0.99832, 0.99724, 0.99245 | test_acc: 0.99751, 0.98870, 0.96592
+Epoch: 33 | train_loss: 0.01202 | test_loss: 0.06165 |train_acc: 0.99787, 0.99727, 0.99377 | test_acc: 0.99618, 0.98886, 0.96144
+Epoch: 34 | train_loss: 0.01100 | test_loss: 0.05517 |train_acc: 0.99835, 0.99691, 0.99420 | test_acc: 0.99651, 0.98870, 0.96875
+Epoch: 35 | train_loss: 0.01022 | test_loss: 0.05396 |train_acc: 0.99873, 0.99789, 0.99437 | test_acc: 0.99651, 0.98787, 0.96576
+Epoch: 36 | train_loss: 0.01062 | test_loss: 0.05465 |train_acc: 0.99818, 0.99792, 0.99458 | test_acc: 0.99701, 0.99036, 0.96642
+Epoch: 37 | train_loss: 0.00828 | test_loss: 0.05230 |train_acc: 0.99813, 0.99842, 0.99576 | test_acc: 0.99634, 0.98969, 0.96958
+Epoch: 38 | train_loss: 0.00762 | test_loss: 0.05378 |train_acc: 0.99849, 0.99844, 0.99585 | test_acc: 0.99684, 0.98870, 0.96875
+Epoch: 39 | train_loss: 0.00641 | test_loss: 0.04812 |train_acc: 0.99883, 0.99880, 0.99664 | test_acc: 0.99767, 0.98953, 0.97108
+Epoch: 40 | train_loss: 0.00728 | test_loss: 0.04924 |train_acc: 0.99868, 0.99895, 0.99601 | test_acc: 0.99767, 0.98986, 0.96941
+Epoch: 41 | train_loss: 0.00616 | test_loss: 0.04907 |train_acc: 0.99859, 0.99877, 0.99669 | test_acc: 0.99701, 0.99152, 0.97158
+Epoch: 42 | train_loss: 0.00576 | test_loss: 0.04977 |train_acc: 0.99885, 0.99892, 0.99717 | test_acc: 0.99734, 0.98986, 0.97008
+Epoch: 43 | train_loss: 0.00549 | test_loss: 0.04851 |train_acc: 0.99878, 0.99890, 0.99770 | test_acc: 0.99684, 0.99086, 0.97324
+Epoch: 44 | train_loss: 0.00498 | test_loss: 0.04837 |train_acc: 0.99902, 0.99914, 0.99782 | test_acc: 0.99717, 0.99053, 0.97291
+Epoch: 45 | train_loss: 0.00442 | test_loss: 0.04648 |train_acc: 0.99883, 0.99954, 0.99789 | test_acc: 0.99717, 0.99219, 0.97424
+Epoch: 46 | train_loss: 0.00438 | test_loss: 0.04875 |train_acc: 0.99871, 0.99935, 0.99842 | test_acc: 0.99767, 0.99102, 0.97291
+Epoch: 47 | train_loss: 0.00472 | test_loss: 0.04912 |train_acc: 0.99863, 0.99931, 0.99801 | test_acc: 0.99684, 0.99252, 0.97124
+Epoch: 48 | train_loss: 0.00452 | test_loss: 0.04934 |train_acc: 0.99890, 0.99933, 0.99760 | test_acc: 0.99751, 0.99036, 0.97158
+Epoch: 49 | train_loss: 0.00408 | test_loss: 0.05086 |train_acc: 0.99897, 0.99940, 0.99793 | test_acc: 0.99767, 0.99136, 0.97025
+Epoch: 50 | train_loss: 0.00408 | test_loss: 0.04881 |train_acc: 0.99902, 0.99950, 0.99813 | test_acc: 0.99734, 0.99169, 0.97274
+Epoch: 51 | train_loss: 0.00410 | test_loss: 0.05280 |train_acc: 0.99897, 0.99940, 0.99825 | test_acc: 0.99734, 0.99102, 0.97141
+Epoch: 52 | train_loss: 0.00404 | test_loss: 0.04949 |train_acc: 0.99885, 0.99938, 0.99844 | test_acc: 0.99701, 0.99053, 0.97241
+Epoch: 53 | train_loss: 0.00441 | test_loss: 0.04773 |train_acc: 0.99890, 0.99930, 0.99847 | test_acc: 0.99767, 0.99069, 0.97274
+Epoch: 54 | train_loss: 0.00393 | test_loss: 0.04841 |train_acc: 0.99899, 0.99919, 0.99827 | test_acc: 0.99751, 0.99102, 0.97174
+Epoch: 55 | train_loss: 0.00379 | test_loss: 0.04730 |train_acc: 0.99880, 0.99964, 0.99806 | test_acc: 0.99734, 0.99202, 0.97324
+Epoch: 56 | train_loss: 0.00486 | test_loss: 0.04943 |train_acc: 0.99880, 0.99907, 0.99818 | test_acc: 0.99751, 0.99119, 0.97291
+Epoch: 57 | train_loss: 0.00398 | test_loss: 0.05102 |train_acc: 0.99926, 0.99923, 0.99830 | test_acc: 0.99717, 0.99136, 0.97291
+Epoch: 58 | train_loss: 0.00426 | test_loss: 0.05373 |train_acc: 0.99875, 0.99935, 0.99837 | test_acc: 0.99684, 0.99019, 0.97091
+Epoch: 59 | train_loss: 0.00410 | test_loss: 0.05166 |train_acc: 0.99885, 0.99926, 0.99820 | test_acc: 0.99734, 0.99053, 0.97291
+Early stopping
+
+Training Finished! Time Elapsed: 1116.03 sec.
+
+Test-set results (bcnn_densenet121_baseline_08-25):
+  level 0 (n=11909): acc=0.9966
+  level 1 (n=11909): acc=0.9921
+  level 2 (n=11909): acc=0.9752
+
+Saved to /home/tjhinale/repo/Zooplankton_Classification/training_result/mnr/bcnn_densenet121_baseline_08-25/

@@ -1,0 +1,32 @@
+
+===== Quetico_Messy (quetico/Messy) =====
+Quetico_Messy: Manually Classified crops found: 25564
+Using device: cuda | backbone: swin_t | thresholds: (0.98, 0.995, 0.99)
+Loaded checkpoint: training_result/swin_t_cnn_noise_10-20/best_model.pt
+Ran inference on 25564 images (23577 with a taxonomy match)
+Saved -> /home/tjhinale/repo/Zooplankton_Classification/runs/inference_results/quetico/messy/quetico_messy_test_data_swin_t_cnn_noise_10-20/predictions.csv
+Saved -> /home/tjhinale/repo/Zooplankton_Classification/runs/inference_results/quetico/messy/quetico_messy_test_data_swin_t_cnn_noise_10-20/top_predictions_breakdown.png
+Saved -> /home/tjhinale/repo/Zooplankton_Classification/runs/inference_results/quetico/messy/quetico_messy_test_data_swin_t_cnn_noise_10-20/leaf_accuracy.png
+Saved -> /home/tjhinale/repo/Zooplankton_Classification/runs/inference_results/quetico/messy/quetico_messy_test_data_swin_t_cnn_noise_10-20/leaf_accuracy_zoop_only.png
+Saved -> /home/tjhinale/repo/Zooplankton_Classification/runs/inference_results/quetico/messy/quetico_messy_test_data_swin_t_cnn_noise_10-20/hierarchy_level_metrics.png
+Saved -> /home/tjhinale/repo/Zooplankton_Classification/runs/inference_results/quetico/messy/quetico_messy_test_data_swin_t_cnn_noise_10-20/id_outcomes_stacked_bar.png
+Saved -> /home/tjhinale/repo/Zooplankton_Classification/runs/inference_results/quetico/messy/quetico_messy_test_data_swin_t_cnn_noise_10-20/id_outcomes_stacked_bar_by_sample.png
+Saved -> /home/tjhinale/repo/Zooplankton_Classification/runs/inference_results/quetico/messy/quetico_messy_test_data_swin_t_cnn_noise_10-20/id_outcomes_table.png
+
+All outputs saved under /home/tjhinale/repo/Zooplankton_Classification/runs/inference_results/quetico/messy/quetico_messy_test_data_swin_t_cnn_noise_10-20
+
+===== Quetico_Not_Messy (quetico/Not_Messy) =====
+Quetico_Not_Messy: Manually Classified crops found: 7924
+Using device: cuda | backbone: swin_t | thresholds: (0.98, 0.995, 0.99)
+Loaded checkpoint: training_result/swin_t_cnn_noise_10-20/best_model.pt
+Ran inference on 7924 images (7571 with a taxonomy match)
+Saved -> /home/tjhinale/repo/Zooplankton_Classification/runs/inference_results/quetico/non-messy/quetico_not_messy_test_data_swin_t_cnn_noise_10-20/predictions.csv
+Saved -> /home/tjhinale/repo/Zooplankton_Classification/runs/inference_results/quetico/non-messy/quetico_not_messy_test_data_swin_t_cnn_noise_10-20/top_predictions_breakdown.png
+Saved -> /home/tjhinale/repo/Zooplankton_Classification/runs/inference_results/quetico/non-messy/quetico_not_messy_test_data_swin_t_cnn_noise_10-20/leaf_accuracy.png
+Saved -> /home/tjhinale/repo/Zooplankton_Classification/runs/inference_results/quetico/non-messy/quetico_not_messy_test_data_swin_t_cnn_noise_10-20/leaf_accuracy_zoop_only.png
+Saved -> /home/tjhinale/repo/Zooplankton_Classification/runs/inference_results/quetico/non-messy/quetico_not_messy_test_data_swin_t_cnn_noise_10-20/hierarchy_level_metrics.png
+Saved -> /home/tjhinale/repo/Zooplankton_Classification/runs/inference_results/quetico/non-messy/quetico_not_messy_test_data_swin_t_cnn_noise_10-20/id_outcomes_stacked_bar.png
+Saved -> /home/tjhinale/repo/Zooplankton_Classification/runs/inference_results/quetico/non-messy/quetico_not_messy_test_data_swin_t_cnn_noise_10-20/id_outcomes_stacked_bar_by_sample.png
+Saved -> /home/tjhinale/repo/Zooplankton_Classification/runs/inference_results/quetico/non-messy/quetico_not_messy_test_data_swin_t_cnn_noise_10-20/id_outcomes_table.png
+
+All outputs saved under /home/tjhinale/repo/Zooplankton_Classification/runs/inference_results/quetico/non-messy/quetico_not_messy_test_data_swin_t_cnn_noise_10-20
