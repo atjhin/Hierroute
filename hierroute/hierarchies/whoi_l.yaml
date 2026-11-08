@@ -1,0 +1,32 @@
+# Marine diatom taxonomy (Plankton-WHOI) by phylogenetic lineage, 14 leaves, 5 levels.
+# Mirrors hierroute.constants.whoi_adjacency_graph_l.
+name: whoi_l
+tree:
+  root: [Bacilllariophytina, Coscinodiscophyceae]
+  Bacilllariophytina: [Bacilliorhycaea, Mediophycaea]
+  Coscinodiscophyceae: [Corethron, Rhizosoleniaceae]
+  Bacilliorhycaea: [Bacillariaceae, Thalassionema]
+  Mediophycaea: [Chaetocerothophycidae, Thalassiosirophycidae]
+  Chaetocerothophycidae: [Chaetocerotales, Hemiaulaceae]
+  Thalassiosirophycidae: [Ditylum, Thalassiosoreles]
+  Chaetocerotales: [Chaetoceros, Leptocylindrus]
+  Hemiaulaceae: [Cerataulina, Eucampia]
+  Thalassiosoreles: [Skeletonema, Thalassiosira]
+  Bacillariaceae: [Cylindrotheca, Pseudonitzschia]
+  Rhizosoleniaceae: [Dactyliosolen, Guinardia, Rhizosolenia]
+  Cylindrotheca: []
+  Pseudonitzschia: []
+  Thalassionema: []
+  Chaetoceros: []
+  Leptocylindrus: []
+  Cerataulina: []
+  Eucampia: []
+  Ditylum: []
+  Skeletonema: []
+  Thalassiosira: []
+  Corethron: []
+  Dactyliosolen: []
+  Guinardia: []
+  Rhizosolenia: []
+folder_map:
+  Guinardia: [Guinardia_delicatula, Guinardia_flaccida, Guinardia_striata]

@@ -139,6 +139,7 @@ class HierRouteNet(nn.Module):
         backbone: str = "efficientnet_b0",
         freeze_backbone: bool = False,
         expert_type: str = "mlp",
+        pretrained: bool = True,
     ) -> None:
         super().__init__()
         self.hierarchy = hierarchy
@@ -148,18 +149,20 @@ class HierRouteNet(nn.Module):
         self.backbone_type = backbone
         self.expert_type = expert_type
 
+        # pretrained=False skips torchvision's ImageNet download, for when a trained
+        # checkpoint is about to overwrite every backbone weight anyway.
         if backbone == "efficientnet_b0":
-            bb = models.efficientnet_b0(weights=models.EfficientNet_B0_Weights.IMAGENET1K_V1)
+            bb = models.efficientnet_b0(weights=models.EfficientNet_B0_Weights.IMAGENET1K_V1 if pretrained else None)
             self.shared = bb.features
             self.pool = bb.avgpool
             self.feature_dim = bb.classifier[1].in_features
         elif backbone == "swin_t":
-            bb = models.swin_t(weights=models.Swin_T_Weights.IMAGENET1K_V1)
+            bb = models.swin_t(weights=models.Swin_T_Weights.IMAGENET1K_V1 if pretrained else None)
             self.shared = bb.features
             self.pool = nn.AdaptiveAvgPool2d(1)
             self.feature_dim = bb.head.in_features
         elif backbone == "swin_s":
-            bb = models.swin_s(weights=models.Swin_S_Weights.IMAGENET1K_V1)
+            bb = models.swin_s(weights=models.Swin_S_Weights.IMAGENET1K_V1 if pretrained else None)
             self.shared = bb.features
             self.pool = nn.AdaptiveAvgPool2d(1)
             self.feature_dim = bb.head.in_features

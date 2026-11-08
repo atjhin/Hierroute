@@ -135,3 +135,67 @@ def base_image_dataset(tmp_image_dir):
         format_file=".tif",
     )
     return ds
+
+
+# ------------------------------------------------------------------ #
+#  Synthetic FlowCam export + toy hierarchy (crop / evaluate / train) #
+# ------------------------------------------------------------------ #
+
+TOY_HIERARCHY = {
+    "name": "toy",
+    "tree": {"root": ["Animal", "Junk"], "Animal": ["Cat", "Dog", "Animal_Unknown"], "Junk": [],
+             "Cat": [], "Dog": [], "Animal_Unknown": []},
+    "folder_map": {"Junk": ["Debris"]},
+    "eval_folder_map": {"Critter": "Animal_Unknown"},
+}
+
+# (class, x, y, w, h) per particle on each of two mosaics
+TOY_PARTICLES = {
+    "runA_000001.tif": [("Cat", 5, 5, 30, 40), ("Dog", 50, 10, 25, 25), ("Debris", 100, 60, 20, 30),
+                        ("Nauplius", 10, 80, 30, 30), ("Other", 150, 100, 20, 20)],
+    "runA_000002.tif": [("Critter", 0, 0, 40, 40), ("Cat", 60, 60, 35, 35), ("Dog", 180, 120, 40, 40)],
+}
+
+
+@pytest.fixture
+def toy_hierarchy_file(tmp_path):
+    import yaml
+    path = tmp_path / "toy_hierarchy.yaml"
+    path.write_text(yaml.safe_dump(TOY_HIERARCHY, sort_keys=False))
+    return path
+
+
+@pytest.fixture
+def flowcam_export(tmp_path):
+    """exports/runA/ with two RGB mosaics and runA.csv (FlowCam column names)."""
+    run_dir = tmp_path / "exports" / "runA"
+    run_dir.mkdir(parents=True)
+    rng = np.random.default_rng(0)
+    rows, pid = [], 1
+    for mosaic_name, particles in TOY_PARTICLES.items():
+        Image.fromarray(rng.integers(0, 255, (150, 200, 3), dtype=np.uint8), mode="RGB").save(run_dir / mosaic_name)
+        for cls, x, y, w, h in particles:
+            rows.append({"Particle ID": pid, "Class": cls, "Area (ABD)": 10.0 * pid, "Image File": mosaic_name,
+                         "Image X": x, "Image Y": y, "Image Width": w, "Image Height": h})
+            pid += 1
+    import pandas as pd
+    pd.DataFrame(rows).to_csv(run_dir / "runA.csv", index=False)
+    Image.fromarray(np.zeros((150, 200), dtype=np.uint8)).save(run_dir / "runA_000001_bin.tif")
+    return tmp_path / "exports"
+
+
+@pytest.fixture
+def toy_run_dir(tmp_path, toy_hierarchy_file):
+    """An untrained toy model saved like a `hierroute train` run directory."""
+    from hierroute.config import load_hierarchy
+    from hierroute.pretrained import ModelConfig, build_model
+
+    config = ModelConfig(name="toy_run", backbone="efficientnet_b0", expert_type="linear", resolution=32,
+                         hierarchy=load_hierarchy(toy_hierarchy_file))
+    torch.manual_seed(0)
+    model = build_model(config)
+    run_dir = tmp_path / "toy_run"
+    run_dir.mkdir()
+    torch.save(model.state_dict(), run_dir / "best_model.pt")
+    config.save(run_dir)
+    return run_dir

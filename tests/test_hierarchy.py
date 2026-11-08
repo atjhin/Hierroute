@@ -123,12 +123,12 @@ class TestHierarchy:
 class TestMNRHierarchy:
     def test_node_count(self, hierarchy_and_labels):
         h, _ = hierarchy_and_labels
-        assert len(h) == 18
+        assert len(h) == 19
 
     def test_leaf_count(self, hierarchy_and_labels):
         h, _ = hierarchy_and_labels
         leaf_index = h.get_leaf_index()
-        assert sum(leaf_index) == 12
+        assert sum(leaf_index) == 13
 
     def test_max_depth(self, hierarchy_and_labels):
         h, _ = hierarchy_and_labels
@@ -140,3 +140,17 @@ class TestMNRHierarchy:
         for nid in h.nodes:
             path = h.get_path_to_root(nid)
             assert path[0] == h.root
+
+
+class TestFromAdjacency:
+    def test_matches_manual_build(self, hierarchy_and_labels, mnr_adjacency_graph):
+        expected, expected_ids = hierarchy_and_labels
+        built, ids = Hierarchy.from_adjacency(mnr_adjacency_graph)
+        assert ids == expected_ids
+        assert {k: (n.name, n.parent, n.children) for k, n in built.nodes.items()} == \
+            {k: (n.name, n.parent, n.children) for k, n in expected.nodes.items()}
+
+    def test_max_depth_and_name_to_id(self, small_adjacency_graph):
+        h, ids = Hierarchy.from_adjacency(small_adjacency_graph)
+        assert h.max_depth == 2
+        assert h.name_to_id() == ids

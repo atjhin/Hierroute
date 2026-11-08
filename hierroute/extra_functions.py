@@ -10,6 +10,8 @@ import matplotlib.ticker as mticker
 import seaborn as sns
 from pathlib import Path
 from typing import TYPE_CHECKING
+from PIL import Image, ImageDraw, ImageFilter
+from scipy import ndimage
 
 if TYPE_CHECKING:
     from .model import HierRouteNet
@@ -324,7 +326,7 @@ def validate_checkpoint(checkpoint_path, model, backbone: str, expert_type: str)
         ValueError: If the checkpoint cannot be read or is structurally incompatible.
     """
     try:
-        ckpt_state = torch.load(checkpoint_path, map_location="cpu")
+        ckpt_state = torch.load(checkpoint_path, map_location="cpu", weights_only=True)
     except Exception as e:
         raise ValueError(f"Failed to read checkpoint '{checkpoint_path}': {e}") from e
 
@@ -384,6 +386,258 @@ def set_seed(seed: int = 666) -> None:
     torch.cuda.manual_seed_all(seed)  # if you are using multi-GPU
     torch.backends.cudnn.deterministic = True
     torch.backends.cudnn.benchmark = False
+
+
+def _largest_connected_component(mask):
+
+    """
+    Boolean mask kept to only its largest 4-connected component, so a threshold
+    mask that happens to catch a few disconnected specks of vignetting/noise
+    elsewhere in the image doesn't get treated as part of the organism.
+
+    Uses scipy.ndimage.label rather than a Python flood fill: this runs per
+    image inside the training augmentation pipeline, and the pure-Python version
+    was ~17x slower (0.60 vs 0.03 ms/mask), which dominated epoch time on the
+    BCNN path where the DataLoader has no worker processes to hide it behind.
+    Output is identical.
+    """
+
+    if not mask.any():
+        return np.zeros_like(mask, dtype=bool)
+    labelled, n_components = ndimage.label(mask)   # 4-connectivity by default
+    if n_components == 0:
+        return np.zeros_like(mask, dtype=bool)
+    counts = np.bincount(labelled.ravel())
+    counts[0] = 0                                   # background label
+    return labelled == counts.argmax()
+
+
+def _dilate_mask(mask, dilate_px):
+
+    """Grow a boolean mask by dilate_px on each side. 0 returns it unchanged."""
+
+    if dilate_px <= 0 or not mask.any():
+        return mask
+    mask_img = Image.fromarray((mask * 255).astype(np.uint8))
+    mask_img = mask_img.filter(ImageFilter.MaxFilter(2 * dilate_px + 1))
+    return np.array(mask_img) > 0
+
+
+def _bbox_from_mask(mask, padding_frac=0.15):
+
+    """(x0, y0, x1, y1) bounding box of a boolean mask, padded by padding_frac."""
+
+    h, w = mask.shape
+    if not mask.any():
+        return (0, 0, w, h)
+    ys, xs = np.where(mask)
+    y0, y1, x0, x1 = ys.min(), ys.max(), xs.min(), xs.max()
+    pad_x, pad_y = int((x1 - x0) * padding_frac), int((y1 - y0) * padding_frac)
+    return (max(0, x0 - pad_x), max(0, y0 - pad_y), min(w, x1 + pad_x), min(h, y1 + pad_y))
+
+
+def _organism_base_mask(image):
+
+    """Undilated largest-component silhouette mask -- the one expensive step."""
+
+    arr = np.array(image.convert('L'), dtype=float)
+    mask = arr < (arr.mean() - 0.3 * arr.std())
+    return _largest_connected_component(mask)
+
+
+def get_organism_mask(image, dilate_px=4):
+
+    """
+    Boolean silhouette mask of the organism via brightness thresholding
+    (for dark-organism-on-light-background microscopy images), restricted to
+    its largest connected component and optionally dilated by dilate_px so
+    callers get a small halo around the raw silhouette rather than a mask that
+    hugs it exactly. The threshold is deliberately lenient (mean - 0.3*std,
+    rather than a stricter cutoff) because real specimens often have faint,
+    thin appendages (antennae, legs, spines) that are much lighter than the
+    organism's body but still part of it -- a stricter threshold only catches
+    the solid body and leaves those appendages exposed.
+
+    Args:
+        image (PIL.Image): Input image.
+        dilate_px (int, optional): Pixels to grow the mask by on each side via a
+            max filter. 0 disables dilation. Defaults to 4.
+
+    Returns:
+        np.ndarray: Boolean array, shape (H, W), True where the organism (plus
+            halo) is.
+    """
+
+    return _dilate_mask(_organism_base_mask(image), dilate_px)
+
+
+def get_organism_bbox(image, padding_frac=0.15):
+
+    """
+    Approximate the organism's bounding box from its silhouette mask (see
+    get_organism_mask). Used to bias synthetic dirt/fiber placement toward the
+    area surrounding the specimen, matching how real messy images tend to show
+    hair/fiber debris clustering near the organism rather than scattered
+    uniformly.
+
+    Args:
+        image (PIL.Image): Input image.
+        padding_frac (float, optional): Fraction of the organism's extent to pad
+            the bounding box by on each side. Defaults to 0.15.
+
+    Returns:
+        tuple[int, int, int, int]: (x0, y0, x1, y1) bounding box.
+    """
+
+    return _bbox_from_mask(_organism_base_mask(image), padding_frac)
+
+
+def add_synthetic_dirt(image, n_specks=25, n_fibers=8, speck_darkness=(40, 110),
+                        fiber_darkness=(50, 120), speck_alpha=(60, 120),
+                        fiber_alpha=(55, 110), haze_strength=10,
+                        fiber_near_organism_frac=0.75, exclusion_dilate_frac=0.08,
+                        blur_radius=1.2, seed=None):
+
+    """
+    Overlay synthetic dirt/debris onto a clean image to mimic a messy background:
+    small dark speckles (dust particles) scattered across the whole image, thin
+    fiber/hair-like streaks mostly clustered near (but not on top of) the
+    organism (fraction controlled by fiber_near_organism_frac), and a subtle
+    low-frequency haze. The dirt (haze, speckles, fibers, all softly blurred so
+    they read as out-of-focus, since background debris in real messy images is
+    out of focus relative to the in-focus specimen) is built on a full copy of
+    the image first, and the organism's original, untouched pixels are then
+    pasted back on top via its silhouette mask (get_organism_mask, dilated by
+    exclusion_dilate_frac * min(width, height) plus a feathered edge) -- this
+    guarantees the organism itself is unaffected by the dirt regardless of any
+    imprecision in the mask elsewhere (e.g. faint appendages the threshold
+    doesn't fully catch), rather than relying on dirt never being drawn there
+    in the first place. Parameters were calibrated against real messy-background
+    images so background patch stats (mean brightness, mean gradient/texture)
+    land close to the real distribution.
+
+    Args:
+        image (PIL.Image): Input image (any mode; converted internally).
+        n_specks (int, optional): Number of dust speckles to draw. Defaults to 25.
+        n_fibers (int, optional): Number of fiber/hair streaks to draw. Defaults to 8.
+        speck_darkness (tuple[int, int], optional): Min/max darkness for speckles.
+        fiber_darkness (tuple[int, int], optional): Min/max darkness for fibers.
+        speck_alpha (tuple[int, int], optional): Min/max opacity for speckles.
+        fiber_alpha (tuple[int, int], optional): Min/max opacity for fibers.
+        haze_strength (int, optional): Max brightness reduction from the low-frequency haze.
+        fiber_near_organism_frac (float, optional): Fraction of fibers placed near the
+            organism (via get_organism_bbox) rather than uniformly at random.
+        exclusion_dilate_frac (float, optional): Halo kept clear of dirt around the
+            organism's silhouette, as a fraction of min(width, height) -- resolution-
+            relative since raw crop sizes in this dataset vary widely. Defaults to 0.08.
+        blur_radius (float, optional): Gaussian blur radius applied to the
+            specks/fibers overlay, so dirt reads as out-of-focus. 0 disables it.
+        seed (int, optional): Random seed for reproducibility. Defaults to None (fresh
+            randomness each call, as wanted for training-time augmentation).
+
+    Returns:
+        PIL.Image: RGB image with synthetic dirt applied.
+    """
+
+    rng = random.Random(seed)
+    np_rng = np.random.RandomState(seed)
+    img = image.convert('RGBA').copy()
+    w, h = img.size
+    # One silhouette pass shared by both uses -- the bbox and the exclusion mask
+    # derive from the same base mask, so connected components runs once per image.
+    base_mask = _organism_base_mask(image)
+    bx0, by0, bx1, by1 = _bbox_from_mask(base_mask)
+    exclusion_dilate_px = max(2, round(exclusion_dilate_frac * min(w, h)))
+    exclusion_mask = _dilate_mask(base_mask, exclusion_dilate_px)
+
+    def sample_outside_exclusion(x_range, y_range, max_tries=10):
+        x, y = rng.uniform(*x_range), rng.uniform(*y_range)
+        for _ in range(max_tries):
+            if not exclusion_mask[min(int(y), h - 1), min(int(x), w - 1)]:
+                break
+            x, y = rng.uniform(*x_range), rng.uniform(*y_range)
+        return x, y
+
+    # Low-frequency haze
+    noise = np_rng.rand(h, w).astype(np.float32)
+    haze = Image.fromarray((noise * 255).astype(np.uint8)).filter(ImageFilter.GaussianBlur(radius=w / 6))
+    haze_arr = np.array(haze, dtype=np.float32) / 255.0
+    arr = np.array(img, dtype=np.float32)
+    for c in range(3):
+        arr[:, :, c] -= haze_strength * haze_arr
+    arr = np.clip(arr, 0, 255)
+    dirty = Image.fromarray(arr.astype(np.uint8), 'RGBA')
+
+    # Speckles (biased away from the organism, but not strictly forbidden -- the
+    # final paste-back step is what actually guarantees the organism stays clean)
+    overlay = Image.new('RGBA', (w, h), (0, 0, 0, 0))
+    draw = ImageDraw.Draw(overlay)
+    for _ in range(n_specks):
+        x, y = sample_outside_exclusion((0, w), (0, h))
+        r = rng.uniform(0.3, 1.2)
+        darkness = rng.randint(*speck_darkness)
+        alpha = rng.randint(*speck_alpha)
+        draw.ellipse([x - r, y - r, x + r, y + r], fill=(darkness, darkness, darkness, alpha))
+    # fibers (mostly clustered around, but not on top of, the organism)
+    for _ in range(n_fibers):
+        if rng.random() < fiber_near_organism_frac:
+            x1, y1 = sample_outside_exclusion((bx0, bx1), (by0, by1))
+        else:
+            x1, y1 = sample_outside_exclusion((0, w), (0, h))
+        length = rng.uniform(8, 35)
+        angle = rng.uniform(0, 2 * np.pi)
+        points = [(x1, y1)]
+        for _ in range(rng.randint(2, 4)):
+            angle += rng.uniform(-0.5, 0.5)
+            nx = points[-1][0] + length / 3 * np.cos(angle)
+            ny = points[-1][1] + length / 3 * np.sin(angle)
+            points.append((nx, ny))
+        darkness = rng.randint(*fiber_darkness)
+        alpha = rng.randint(*fiber_alpha)
+        draw.line(points, fill=(darkness, darkness, darkness, alpha), width=1)
+
+    if blur_radius > 0:
+        overlay = overlay.filter(ImageFilter.GaussianBlur(radius=blur_radius))
+    dirty = Image.alpha_composite(dirty, overlay)
+
+    # Paste the organism back from the original, untouched image, via a lightly
+    # feathered version of its mask -- guarantees pixel-level fidelity within the
+    # organism regardless of any haze/blur bleed or mask imprecision at its edge.
+    feather_radius = max(1, exclusion_dilate_px // 2)
+    paste_alpha = Image.fromarray((exclusion_mask * 255).astype(np.uint8)).filter(
+        ImageFilter.GaussianBlur(radius=feather_radius)
+    )
+    return Image.composite(image.convert('RGB'), dirty.convert('RGB'), paste_alpha)
+
+
+class RandomBackgroundNoise:
+
+    """
+    torchvision-Compose-compatible transform that randomly applies add_synthetic_dirt
+    to an image, for use as a training-time augmentation step. Unlike calling
+    add_synthetic_dirt directly with a fixed seed (for reproducible one-off
+    replication), this uses fresh randomness on every call, matching the behavior
+    of torchvision's own RandomXxx transforms.
+
+    Note: add_synthetic_dirt internally composites through RGB and returns an RGB
+    image. Since ImageDataset/HierImageDataset.__getitem__ apply image_transforms to
+    a grayscale ('L') image and then unconditionally do image.repeat(3, 1, 1) to get
+    3 channels, this transform converts the output back to the input's original mode
+    before returning it, so it stays a drop-in single-channel step in that pipeline.
+
+    Args:
+        p (float, optional): Probability of applying the noise on each call. Defaults to 0.5.
+        **kwargs: Passed through to add_synthetic_dirt (n_specks, n_fibers, etc.).
+    """
+
+    def __init__(self, p: float = 0.5, **kwargs):
+        self.p = p
+        self.kwargs = kwargs
+
+    def __call__(self, image):
+        if random.random() < self.p:
+            return add_synthetic_dirt(image, seed=None, **self.kwargs).convert(image.mode)
+        return image
 
 
 class Visualize:

@@ -1,0 +1,53 @@
+# Freshwater zooplankton taxonomy (Ontario MNR), 17 leaves, 3 levels.
+# Used by the released swin_t_cnn_noise_10-20 / swin_t_cnn_baseline_10-20 models.
+# Mirrors hierroute.constants.hiernet_adjacency_graph / HIERNET_CLASS_FOLDER_MAP.
+# DO NOT reorder `tree`: node IDs follow key order and the released weights depend on it.
+name: mnr_17leaf
+tree:
+  root: [Zoop-yes, Zoop-No]
+  Zoop-yes: [Copepoda, Cladocera, Rotifer, Zoop_Unknown]
+  Zoop-No: []
+  Copepoda: [Cyclopoid, Calanoid, Nauplius_Copepod, Copepoda_Unknown]
+  Cladocera: [Bosmina, Daphnia, Holopedium, Chydorus, Diaphonosoma, Cladocera_Unknown]
+  Rotifer: [Trichocerca, Asplanchna, Conochilus, Kellicottia, Rotifer_Unknown]
+  Cyclopoid: []
+  Calanoid: []
+  Nauplius_Copepod: []
+  Bosmina: []
+  Daphnia: []
+  Holopedium: []
+  Chydorus: []
+  Diaphonosoma: []
+  Trichocerca: []
+  Asplanchna: []
+  Conochilus: []
+  Kellicottia: []
+  Zoop_Unknown: []
+  Copepoda_Unknown: []
+  Cladocera_Unknown: []
+  Rotifer_Unknown: []
+folder_map:
+  Bosmina: [Bosminidae, Bosmina_1, Eubosmina, Bosmina]
+  Diaphonosoma: [Diaphonosoma, Sididae]
+  Zoop-No: [Bubbles, Exoskeleton, Fiber_Squiggly, Fiber_Hairlike, Plant_Matter, Debris, Bubble, Detritus,
+    Small_Organism_Single, Small_Organism_Multiple]
+  Zoop_Unknown: [Zooplankton, Emily_test_data/Zooplankton]
+  Rotifer_Unknown: [Rotifer]
+  Copepoda_Unknown: [Copepoda]
+  Cladocera_Unknown: [Cladocera]
+# Extra folder names recognised when grading labelled data (`hierroute evaluate --labelled`),
+# on top of each leaf's own name and the folder_map above.
+eval_folder_map:
+  # Catch-all "not an identifiable organism" buckets, graded as Zoop-No
+  Detritus: Zoop-No
+  Small_Organism: Zoop-No
+  Larval_Fish: Zoop-No
+  Small_Nauplius: Zoop-No
+  Small_Rotifer: Zoop-No
+  Daphnia_Decomposing: Zoop-No
+  Decomposing: Zoop-No
+  # Coarse manual IDs (species not determined), graded against the branch's _Unknown leaf
+  Rotifer: Rotifer_Unknown
+  Copepod: Copepoda_Unknown
+  Cladoceran: Cladocera_Unknown
+  Zooplankton: Zoop_Unknown

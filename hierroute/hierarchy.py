@@ -63,6 +63,44 @@ class Hierarchy:
         self.nodes: dict[int, Node] = {}
         self.root:  int | None      = None
 
+    @classmethod
+    def from_adjacency(cls, adjacency_graph: dict[str, list[str]]) -> tuple["Hierarchy", dict[str, int]]:
+        """
+        Build a Hierarchy from a parent -> children adjacency graph.
+
+        Node IDs follow the graph's key order, so a trained checkpoint only loads
+        against a graph with the same key order it was trained with.
+
+        Args:
+            adjacency_graph (dict[str, list[str]]): Every node as a key, mapped to its
+                ordered children (empty list for leaves).
+
+        Returns:
+            tuple: ``(hierarchy, label_to_id)`` where ``label_to_id`` maps node name to node_id.
+        """
+        label_to_id = {name: i for i, name in enumerate(adjacency_graph.keys())}
+        hierarchy = cls()
+        all_children = {c for kids in adjacency_graph.values() for c in kids}
+        root = next(n for n in adjacency_graph if n not in all_children)
+        hierarchy.add_node(label_to_id[root], root)
+
+        def dfs(parent: str) -> None:
+            for child in adjacency_graph[parent]:
+                hierarchy.add_node(label_to_id[child], child, label_to_id[parent])
+                dfs(child)
+
+        dfs(root)
+        return hierarchy, label_to_id
+
+    @property
+    def max_depth(self) -> int:
+        """Number of non-root levels (depth of the deepest node)."""
+        return max(node.depth for node in self.nodes.values())
+
+    def name_to_id(self) -> dict[str, int]:
+        """Mapping from node name to node_id."""
+        return {node.name: node_id for node_id, node in self.nodes.items()}
+
     # ------------------------------------------------------------------ #
     # Built-ins                                                            #
     # ------------------------------------------------------------------ #

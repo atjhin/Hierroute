@@ -1,0 +1,44 @@
+# Reproduces the released `noise` model (swin_t_cnn_noise_10-20).
+#
+#   hierroute train --config configs/mnr_swin_t_cnn_noise.yaml --data-dir /path/to/Hier-Zooplankton
+#
+# Settings not listed here use the defaults in hierroute/config.py (TRAIN_DEFAULTS).
+
+hierarchy: mnr_17leaf          # bundled name, or a path to your own hierarchy YAML
+
+model:
+  backbone: swin_t             # swin_t | swin_s | efficientnet_b0
+  expert: cnn                  # cnn | mlp | linear
+  loss: bce                    # bce | focal
+
+data:
+  data_dir: null               # folder with one subfolder per class -- set here or with --data-dir
+  subdirectories: [IssacData]  # extra folders under data_dir with the same class-subfolder layout
+  uncapped_subdirectories: [Quetico_training_data]   # included in full, on top of max_class_size
+  exclude_log: Messy_background/moved_images/log.md  # images held out for the messy-background test set
+  format: .tif
+  resolution: 64
+  max_class_size: 12000
+  split: [0.7, 0.1, 0.2]       # train / validation / test
+  balanced_sampling: true      # inverse-frequency sampling of the training split
+
+augment:
+  background_noise: true       # synthetic specks/fibres on the background (p = noise_p)
+  noise_p: 0.8
+  hflip: true
+  vflip: true
+
+train:
+  lr: 3.0e-4
+  max_epochs: 40
+  scheduler: cosine            # cosine | none
+  patience: 10                 # early stopping on validation accuracy
+  delta: 0.001
+  gradient_clip: 1.0
+  batch_size: 64
+  num_workers: 8
+  seed: 666
+  device: auto                 # auto | cuda | cuda:N | cpu
+
+out_dir: training_result
+run_name: null                 # default: <backbone>_<expert>_<noise|baseline>_<MM-DD>

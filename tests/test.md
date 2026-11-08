@@ -4,7 +4,8 @@ This document describes all tests in the `tests/` directory for the `hierroute` 
 
 Run all tests:
 ```bash
-cd Zooplankton_Classification && python -m pytest tests/ -v
+pip install -e ".[dev]"
+pytest -v
 ```
 
 ## File Structure
@@ -16,7 +17,11 @@ tests/
 ├── test_model.py            # FocalLoss, Expert, HierRouteNet
 ├── test_trainer.py          # Trainer (fit, predict, evaluate)
 ├── test_extra_functions.py  # set_seed, Visualize
-└── test_integration.py      # End-to-end pipeline
+├── test_integration.py      # End-to-end pipeline (Python API)
+├── test_config.py           # Hierarchy YAML files, HierarchySpec, training config
+├── test_grading.py          # ID-outcome rubric and metric tables
+├── test_flowcam.py          # FlowCam CSV parsing, class rules, cropping
+└── test_cli.py              # `hierroute` commands end to end on synthetic data
 ```
 
 ---
@@ -76,8 +81,8 @@ Validates the full MNR zooplankton hierarchy from `constants.py`.
 
 | Test | What it verifies |
 |------|-----------------|
-| `test_node_count` | Total of 18 nodes |
-| `test_leaf_count` | Exactly 12 leaf (species-level) nodes |
+| `test_node_count` | Total of 19 nodes |
+| `test_leaf_count` | Exactly 13 leaf nodes |
 | `test_max_depth` | Maximum depth is 3 (root → order → family → species) |
 | `test_all_paths_start_at_root` | Every node's path begins at the root |
 
@@ -222,15 +227,52 @@ A single comprehensive test (`test_full_pipeline`) that exercises the entire wor
 
 ---
 
+## test_config.py — Hierarchies and configuration
+
+- Each bundled hierarchy YAML (`mnr_17leaf`, `mnr_13leaf`, `whoi_s`, `whoi_l`) matches its `constants.py`
+  dict exactly, **including key order** (node IDs, and so the released weights, depend on it).
+- The released models' hierarchy fingerprints match the bundled `mnr_17leaf` tree.
+- `HierarchySpec` validation (missing children, two parents, two roots, unknown nodes), the
+  folder-to-node priority used when grading, and YAML round-trips.
+- Training config: defaults, merging a file over them, unknown keys rejected, `--set` overrides, and
+  that every file in `configs/` loads.
+
+## test_grading.py — Outcomes and metrics
+
+- `classify_id_outcome` on a toy taxonomy: exact, coarse truth, ancestor, `_Unknown` sibling credit
+  (one-way), wrong at each level, abstained; confidence back-off; outcome keys/labels/colours.
+- Strict and loosened leaf tables, per-level table, ID-outcome table rows summing to 1.
+
+## test_flowcam.py — FlowCam exports
+
+Uses the synthetic export in `conftest.py` (two RGB mosaics, one CSV, a `_bin` mask).
+- Unquoted commas in `Image File`, mask/`cal_image` exclusion, `Nauplius` + `Group` renaming.
+- Particle table statuses (ignored class, missing mosaic), a separate CSV folder.
+- Crops are pixel-identical to a manual crop, are skipped when they exist, and out-of-bounds boxes
+  are flagged.
+
+## test_cli.py — Commands end to end
+
+Runs `hierroute crop`, `evaluate` (labelled / unlabelled / FlowCam input / thresholds / every optional
+output), and `train` (1 epoch, then `evaluate --weights` on the run) on CPU with an untrained
+EfficientNet-B0 and no downloads. Checks the output files, `predictions.csv` columns and grading, and
+that FlowCam input and crop input give the same predictions.
+
+---
+
 ## Test Count Summary
 
 | File | Tests |
 |------|-------|
-| `test_hierarchy.py` | 21 |
+| `test_hierarchy.py` | 23 |
 | `test_model.py` | 25 |
 | `test_trainer.py` | 8 |
 | `test_extra_functions.py` | 5 |
 | `test_integration.py` | 1 |
-| **Total** | **60** |
+| `test_config.py` | 28 |
+| `test_grading.py` | 16 |
+| `test_flowcam.py` | 10 |
+| `test_cli.py` | 11 |
+| **Total** | **127** |
 
 Note: Some tests are parametrized (e.g., `test_forward_output_shapes` runs once per expert type), so the actual number of test cases executed by pytest may be higher.

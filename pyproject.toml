@@ -1,0 +1,58 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "hierroute"
+dynamic = ["version"]
+description = "Hierarchical mixture-of-experts classification of plankton images, with pretrained zooplankton models"
+readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
+requires-python = ">=3.10"
+authors = [
+    { name = "Alexander Tjhin", email = "alexander.tjhin@mail.utoronto.ca" },
+    { name = "Emily Hassal", email = "Emily.Hassal@ontario.ca" },
+    { name = "Dak de Kerckhove", email = "Dak.deKerckhove@ontario.ca" },
+]
+keywords = ["plankton", "zooplankton", "flowcam", "hierarchical classification", "pytorch"]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Operating System :: OS Independent",
+    "Intended Audience :: Science/Research",
+    "Topic :: Scientific/Engineering :: Image Recognition",
+]
+dependencies = [
+    "torch>=2.1",
+    "torchvision>=0.16",
+    "numpy>=1.24",
+    "pandas>=2.0",
+    "pillow>=9.5",
+    "scipy>=1.10",
+    "scikit-learn>=1.2",
+    "matplotlib>=3.7",
+    "seaborn>=0.12",
+    "pyyaml>=6.0",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=7"]
+
+[project.scripts]
+hierroute = "hierroute.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/atjhin/Hierroute"
+Issues = "https://github.com/atjhin/Hierroute/issues"
+
+[tool.setuptools]
+packages = ["hierroute", "hierroute.hierarchies"]
+
+[tool.setuptools.dynamic]
+version = { attr = "hierroute.__version__" }
+
+[tool.setuptools.package-data]
+"hierroute.hierarchies" = ["*.yaml"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

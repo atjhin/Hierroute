@@ -1,0 +1,30 @@
+# Marine diatom taxonomy (Plankton-WHOI) by morphological traits, 16 leaves, 3 levels.
+# Mirrors hierroute.constants.whoi_adjacency_graph_s.
+name: whoi_s
+tree:
+  root: [Colonial, Unicellular]
+  Colonial: [C-Spines, C-NoSpines]
+  Unicellular: [U-Spines, U-NoSpines]
+  C-Spines: [Chaetoceros, Lauderia, Asterionellopsis]
+  C-NoSpines: [Pseudonitzschia, Leptocylindrus, Eucampia, Skeletonema, Dactyliosolen, Thalassiosira, Guinardia,
+    Cerataulina]
+  U-Spines: [Corethron, Ditylum]
+  U-NoSpines: [Cylindrotheca, Coscinodiscus, Ephemera]
+  Chaetoceros: []
+  Lauderia: []
+  Asterionellopsis: []
+  Pseudonitzschia: []
+  Leptocylindrus: []
+  Eucampia: []
+  Skeletonema: []
+  Dactyliosolen: []
+  Thalassiosira: []
+  Guinardia: []
+  Cerataulina: []
+  Corethron: []
+  Ditylum: []
+  Cylindrotheca: []
+  Coscinodiscus: []
+  Ephemera: []
+folder_map:
+  Guinardia: [Guinardia_delicatula, Guinardia_flaccida, Guinardia_striata]

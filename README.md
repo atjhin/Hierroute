@@ -1,413 +1,456 @@
-# HierRouteNet — Hierarchical Zooplankton Classification
+# hierroute
 
-HierRouteNet is a modular hierarchical image classification framework for zooplankton and plankton species identification. It models biological taxonomy as a tree and routes each image from coarse to fine categories using a set of per-node expert classifiers, each trained to distinguish the children of one internal node. Predictions are guaranteed to follow a valid path through the hierarchy (structural consistency).
+Hierarchical classification of plankton images, with ready-to-use models for freshwater
+zooplankton imaged on a FlowCam.
 
----
+Each particle is classified top-down through a taxonomy: first zooplankton or not, then the major
+group (Copepoda, Cladocera, Rotifer), then the species. Because every prediction follows a path
+through the tree, it is always taxonomically consistent, and the model reports how confident it was
+at each level.
 
-## Datasets
-
-Two independent datasets are supported:
-
-### Zooplankton-MNR (Freshwater)
-- **Source**: Ontario Ministry of Natural Resources
-- **Images**: 64×64 grayscale TIFF
-- **Classes**: 13 leaf species across 3 hierarchy levels (18 nodes total)
-- **Samples**: ~48,600 after filtering to leaf nodes (max 6,000 per class)
-
-### Plankton-WHOI (Marine)
-- **Source**: Woods Hole Oceanographic Institution (2006–2014)
-- **Images**: Variable-size grayscale PNG
-- **Classes**: 16 leaf species across 3 hierarchy levels (23 nodes total, Guinardia sub-species merged)
-- **Samples**: ~69,150 (max 6,000 per class)
+```
+pip install hierroute
+hierroute evaluate my_crops/ --out results/
+```
 
 ---
 
-## Hierarchy
+## Contents
 
-### MNR — 3-level taxonomy
+1. [Install](#install)
+2. [Quick start](#quick-start)
+3. [Input layouts](#input-layouts)
+4. [Outputs](#outputs)
+5. [Choosing a model](#choosing-a-model)
+6. [Command reference](#command-reference)
+7. [Training your own model](#training-your-own-model)
+8. [The taxonomy](#the-taxonomy)
+9. [Limitations](#limitations)
+10. [Using it from Python](#using-it-from-python)
+11. [Development](#development)
+
+---
+
+## Install
+
+Requires Python 3.10 or newer.
+
+```bash
+pip install hierroute
+```
+
+This installs PyTorch as well. On Linux the default PyTorch wheel includes CUDA support. If you need
+a specific CUDA version, or a smaller CPU-only install, install PyTorch first by following
+[pytorch.org/get-started](https://pytorch.org/get-started/locally/), then run `pip install hierroute`.
+
+Check the install:
+
+```bash
+hierroute --version
+hierroute download --list
+```
+
+The model weights (about 115 MB each) download automatically the first time a model is used.
+For computers without internet access, see [Offline use](#offline-use).
+
+---
+
+## Quick start
+
+**1. You have a FlowCam export with manual classes** (the CSV has a `Class` column). Crop each
+particle into its own image, sorted into one folder per class:
+
+```bash
+hierroute crop path/to/flowcam_export --out crops/
+```
+
+**2. Check how well the model does on your data**, by comparing its predictions with your manual
+classes:
+
+```bash
+hierroute evaluate crops/ --labelled --out results/
+```
+
+**3. Classify new, unclassified particles.** You can point it straight at the raw FlowCam export;
+nothing needs to be cropped first:
+
+```bash
+hierroute evaluate path/to/flowcam_export --input-type flowcam --out results/
+```
+
+or at a folder of particle images you already have:
+
+```bash
+hierroute evaluate my_particle_images/ --out results/
+```
+
+Each command prints what it found and where it saved its results. Add `-h` to any command for all
+of its options (for example `hierroute evaluate -h`).
+
+---
+
+## Input layouts
+
+All images are `.tif` files.
+
+### Raw FlowCam export (`hierroute crop`, or `hierroute evaluate --input-type flowcam`)
+
+The mosaic images plus the export CSV(s). Folders can be nested in any way; the CSVs can sit next to
+the mosaics or in a separate folder (pass it with `--csv-dir`).
+
+```
+flowcam_export/
+├── 20240430_Erie_WNS0904_2mm_Rep1/
+│   ├── 20240430_Erie_WNS0904_2mm_Rep1.csv          ← one row per particle
+│   ├── 20240430_Erie_WNS0904_2mm_Rep1_000001.tif   ← mosaics
+│   ├── 20240430_Erie_WNS0904_2mm_Rep1_000002.tif
+│   └── ...
+└── 20240430_Erie_WNS0904_2mm_Rep2/
+    └── ...
+```
+
+The CSV needs FlowCam's `Particle ID`, `Image File`, `Image X`, `Image Y`, `Image Width` and
+`Image Height` columns. Each particle is found on the mosaic named in its `Image File` column, so
+CSV file names don't matter. `_bin.tif` masks and `cal_image` files are ignored.
+
+For labelled data, the manual class comes from the `Class` column (`--label-column` to change it).
+`Nauplius` becomes `Nauplius_Copepod` using the `Group` column, or `Copepod` if there is no such
+column. Use `--class-map` to rename classes and `--ignore-classes` to skip some (for example
+`--ignore-classes Other Duplicate`).
+
+### Individual particle images, unlabelled (`hierroute evaluate`)
+
+Any folder of particle `.tif` files, at any depth:
+
+```
+my_particle_images/
+├── 20240430_Erie_WNS0904_2mm_Rep1_000001_1.tif
+├── 20240430_Erie_WNS0904_2mm_Rep1_000001_2.tif
+└── ...
+```
+
+### Individual particle images, labelled (`hierroute evaluate --labelled`)
+
+One folder per manual class directly inside the input folder. This is what `hierroute crop` writes.
+
+```
+crops/
+├── Bosmina/
+│   ├── 20240430_Erie_WNS0904_2mm_Rep1_000001_1.tif
+│   └── ...
+├── Calanoid/
+├── Detritus/
+├── ...
+└── manifest.csv        ← written by hierroute crop
+```
+
+Folder names are matched to the taxonomy as follows:
+
+- **A taxonomy class name** (e.g. `Bosmina`, `Calanoid`, `Zoop-No`) is graded as that class.
+- **Known aliases** (e.g. `Bosminidae` → `Bosmina`). Catch-all folders such as `Detritus`, `Debris`,
+  `Bubbles` and `Small_Organism` are graded as `Zoop-No`. Coarse IDs `Copepod`, `Cladoceran`, `Rotifer`
+  and `Zooplankton` are graded as that branch's `_Unknown` class. The full list is in
+  [`hierroute/hierarchies/mnr_17leaf.yaml`](hierroute/hierarchies/mnr_17leaf.yaml).
+- **Any other folder** (e.g. `MultiClass`, `Partial`) still gets predictions in `predictions.csv`, but is
+  not graded. The command lists these folders when it runs.
+
+To grade your own folder names, add a YAML file mapping folder → class:
+
+```yaml
+# my_folders.yaml
+Bosminid: Bosmina
+Cyclopoida: Cyclopoid
+Junk: Zoop-No
+```
+
+```bash
+hierroute evaluate crops/ --labelled --folder-map my_folders.yaml --out results/
+```
+
+---
+
+## Outputs
+
+### `hierroute crop`
+
+- One `.tif` per particle: `<out>/<class>/<mosaic name>_<Particle ID>.tif`, or `<out>/<run>/...`
+  with `--unlabelled`.
+- `manifest.csv` with one row per particle. It records where the crop was written, its status
+  (`written`, `exists`, `missing mosaic`, `zero-size box`, `ignored class`), whether the box ran past
+  the mosaic edge, and every FlowCam measurement as a `csv_*` column.
+
+Crops that already exist are skipped, so an interrupted run can simply be restarted
+(`--overwrite` to redo them).
+
+### `hierroute evaluate`
+
+| File | When | Contents |
+|---|---|---|
+| `predictions.csv` | always | one row per image (see below) |
+| `leaf_accuracy.png` | `--labelled` | per-class N, accuracy, precision, recall, F1 |
+| `id_outcomes_table.png` | `--labelled` | per class, the share of each ID outcome (below) |
+| `id_outcomes_stacked_bar.png` | `--labelled` | the same, as a stacked bar chart |
+| `hierarchy_level_metrics.png` | `--labelled` | accuracy, precision, recall, F1 at each level of the tree |
+| `skipped_particles.csv` | FlowCam input with problems | particles that could not be predicted, and why |
+
+`predictions.csv` columns:
+
+| Column | Meaning |
+|---|---|
+| `image_file` | crop name (`<mosaic name>_<Particle ID>.tif`) |
+| `run` / `folder` | FlowCam run (raw exports) / sub-folder (unlabelled crops) |
+| `actual_class`, `in_taxonomy` | manual class and whether it was graded (`--labelled`) |
+| `predicted_class_1` | the model's prediction (the most specific class it reached) |
+| `predicted_class_2` | the runner-up class |
+| `confidence_level_1..3` | the model's confidence in its decision at each level (0–1) |
+| `predicted_level_1..3` | the predicted class at each level (empty below `Zoop-No`, which has no sub-levels) |
+| `correct_all` ... `incorrect_all` | the ID outcome, one `True` per graded row (`--labelled`) |
+| `out_of_bounds` | the FlowCam box ran past the mosaic edge (raw exports) |
+| `csv_*` | the particle's FlowCam measurements, when the CSVs or `manifest.csv` are available |
+
+**ID outcomes** describe where a prediction first disagrees with the manual ID:
+
+| Outcome | Meaning |
+|---|---|
+| Correct_All | same class as the manual ID (or within it, for a coarse manual ID like `Rotifer`) |
+| Correct_Incomplete | right branch, less specific: e.g. a Cyclopoid predicted as `Copepoda_Unknown` |
+| Incorrect_L3 | right major group, wrong species |
+| Incorrect_L2 | right at level 1 (zooplankton or not), wrong major group |
+| Incorrect_All | wrong already at level 1 |
+| Abstained | only with `--thresholds`: no level was confident enough |
+
+By default `leaf_accuracy.png` counts a `Correct_Incomplete` prediction as a hit for the true class
+(add `--strict-leaf-accuracy` for exact matches only).
+
+**Optional outputs** for `--labelled`:
+
+| Flag | Output |
+|---|---|
+| `--zoop-only` | `leaf_accuracy_zoop_only.png`, leaf accuracy without the (usually very large) `Zoop-No` class |
+| `--by-sample` | `id_outcomes_stacked_bar_by_sample.png`, one bar per FlowCam run |
+| `--breakdown FOLDER ...` | `top_predictions_breakdown.png`, the top-3 predictions for folders such as `Unknown MultiClass` |
+| `--capped [N]` | `leaf_accuracy_capped.png` and `id_outcomes_table_capped.png`, with at most N images per class (default 3000) |
+| `--thresholds T1 T2 T3` | grade with confidence gating: a prediction backs off to a coarser level (or abstains) when the model's confidence at a level is below that level's threshold, e.g. `--thresholds 0.98 0.995 0.99` |
+| `--exclude-runs PATTERN ...` | leave out images from FlowCam runs whose name contains a pattern |
+| `--training-accuracy` | `training_result_accuracy.png`, from a self-trained model's own test split (needs `--weights`) |
+
+---
+
+## Choosing a model
+
+Two models are released. Both use a Swin-T backbone with CNN experts on 64 × 64 greyscale images,
+and the same 17-class taxonomy:
+
+| Model | Flag | Use for |
+|---|---|---|
+| **noise** (default) | `--model noise` | messy or dirty backgrounds: trained with synthetic specks and fibres added to the background |
+| baseline | `--model baseline` | clean backgrounds |
+
+The noise model is the safer default. It is clearly more accurate on messy backgrounds and about
+the same on clean ones.
+
+| Accuracy | Model | Level 1 (Zoop yes / no) | Level 2 (group) | Level 3 (species) |
+|---|---|---|---|---|
+| Held-out test split (14,345 images) | noise | 0.993 | 0.987 | 0.947 |
+| | baseline | 0.993 | 0.988 | 0.948 |
+| Lake Erie test set (42,357 manually classified particles) | noise | 0.985 | 0.957 | 0.925 |
+| | baseline | 0.984 | 0.962 | 0.931 |
+
+Erie accuracies are from `hierarchy_level_metrics.png` (micro-averaged, with credit for `_Unknown`
+siblings). Accuracy on your own data may differ, especially for lakes, seasons or FlowCam settings
+not represented in training. Check with `hierroute evaluate --labelled` on a manually classified sample.
+
+---
+
+## Command reference
+
+```
+hierroute crop      INPUT --out DIR       FlowCam exports -> particle crops + manifest.csv
+hierroute evaluate  INPUT --out DIR       predictions.csv (+ metrics with --labelled)
+hierroute train     --config FILE         train a model
+hierroute download  [noise|baseline|all]  download released weights
+```
+
+Frequently used `evaluate` options:
+
+| Option | Meaning |
+|---|---|
+| `--model noise` / `--model baseline` | released model (default `noise`) |
+| `--weights DIR` | a model you trained yourself (its run folder) |
+| `--input-type flowcam` | INPUT is a raw FlowCam export instead of crops |
+| `--labelled` | grade against manual classes |
+| `--csv-dir DIR` | where the FlowCam CSVs are, if not inside INPUT |
+| `--device cpu` | force CPU (default: a GPU if available) |
+| `--batch-size N`, `--num-workers N` | speed / memory tuning (defaults 64 and 4) |
+
+A GPU is recommended for large datasets but not required. On a GPU, around 50,000 particles take
+well under a minute.
+
+### Offline use
+
+The weights are cached in `~/.cache/hierroute` (or `$HIERROUTE_CACHE_DIR`). On a machine with
+internet, run `hierroute download`. Then copy that folder to the same place on the offline machine,
+or point `HIERROUTE_CACHE_DIR` at a shared copy.
+
+Training downloads PyTorch's ImageNet starting weights the first time, into `~/.cache/torch`
+(`$TORCH_HOME`). Copy that folder the same way, or train with `--set model.pretrained_backbone=false`
+to start from random weights.
+
+---
+
+## Training your own model
+
+Training needs a folder with one sub-folder of `.tif` crops per class (`hierroute crop` produces this
+from labelled FlowCam exports):
+
+```bash
+hierroute train --config configs/mnr_swin_t_cnn_noise.yaml --data-dir /path/to/training_images
+```
+
+`configs/` in this repository has the configurations of the released models. Copy one and edit it,
+or override single settings on the command line:
+
+```bash
+hierroute train --config my_config.yaml --backbone efficientnet_b0 --expert mlp --no-noise --epochs 20
+hierroute train --config my_config.yaml --set data.max_class_size=6000 --set train.patience=5
+```
+
+| Setting | Options |
+|---|---|
+| `hierarchy` | `mnr_17leaf` (released models), `mnr_13leaf`, `whoi_s`, `whoi_l`, or your own YAML file |
+| `model.backbone` | `swin_t`, `swin_s`, `efficientnet_b0` |
+| `model.expert` | `cnn`, `mlp`, `linear` |
+| `augment.background_noise` | synthetic background dirt on/off (`--noise` / `--no-noise`) |
+| `data.*` | data folders, image format, resolution, per-class cap, train/val/test split |
+| `train.*` | learning rate, epochs, early stopping, batch size, seed, device |
+
+All settings and their defaults are in [`hierroute/config.py`](hierroute/config.py) (`TRAIN_DEFAULTS`).
+
+A run creates `training_result/<backbone>_<expert>_<noise|baseline>_<MM-DD>/` with:
+- `best_model.pt`, the best checkpoint by validation accuracy
+- `model_config.json`, `train_config.yaml`, `training_info.json`
+- `eval_results.json` and `predictions.npz`, from the held-out test split
+
+Use it with `--weights`:
+
+```bash
+hierroute evaluate crops/ --labelled --weights training_result/swin_t_cnn_noise_11-08 --out results/
+```
+
+### Your own taxonomy
+
+Write a hierarchy YAML file and pass its path as `hierarchy`:
+
+```yaml
+name: my_lake
+tree:                      # parent: [children]; every class appears as a key, leaves have []
+  root: [Zoop-yes, Zoop-No]
+  Zoop-yes: [Copepoda, Cladocera]
+  Zoop-No: []
+  Copepoda: [Cyclopoid, Calanoid]
+  Cladocera: [Bosmina, Daphnia]
+  Cyclopoid: []
+  Calanoid: []
+  Bosmina: []
+  Daphnia: []
+folder_map:                # optional: class -> training folders pooled into it
+  Bosmina: [Bosmina, Bosminidae]
+  Zoop-No: [Detritus, Bubbles, Debris]
+eval_folder_map:           # optional: extra folder -> class when grading with --labelled
+  Copepod: Copepoda
+```
+
+Every leaf class (one with `[]`) needs a training folder of the same name, or an entry in
+`folder_map`. Leaves can sit at different depths (here `Zoop-No` is a leaf at level 1).
+
+---
+
+## The taxonomy
+
+The released models predict 17 classes in 3 levels
+([`mnr_17leaf.yaml`](hierroute/hierarchies/mnr_17leaf.yaml)):
 
 ```
 root
 ├── Zoop-yes
 │   ├── Copepoda
-│   │   ├── Calanoid
 │   │   ├── Cyclopoid
-│   │   ├── Harpacticoid
-│   │   └── Nauplius_Copepod
+│   │   ├── Calanoid
+│   │   ├── Nauplius_Copepod
+│   │   └── Copepoda_Unknown
 │   ├── Cladocera
-│   │   ├── Bosminidae
-│   │   └── Daphnia
-│   └── Rotifer
-└── Zoop-No
-    ├── Bubbles
-    ├── Exoskeleton
-    ├── Fiber
-    │   ├── Fiber_Hairlike
-    │   └── Fiber_Squiggly
-    └── Plant_Matter
+│   │   ├── Bosmina
+│   │   ├── Daphnia
+│   │   ├── Holopedium
+│   │   ├── Chydorus
+│   │   ├── Diaphonosoma
+│   │   └── Cladocera_Unknown
+│   ├── Rotifer
+│   │   ├── Trichocerca
+│   │   ├── Asplanchna
+│   │   ├── Conochilus
+│   │   ├── Kellicottia
+│   │   └── Rotifer_Unknown
+│   └── Zoop_Unknown
+└── Zoop-No            (detritus, debris, bubbles, fibres, exoskeletons, plant matter, small organisms)
 ```
 
-### WHOI — 3-level taxonomy (morphological)
-
-```
-root
-├── Colonial
-│   ├── C-Spines
-│   │   ├── Chaetoceros
-│   │   ├── Lauderia
-│   │   └── Asterionellopsis
-│   └── C-NoSpines
-│       ├── Pseudonitzschia
-│       ├── Leptocylindrus
-│       ├── Eucampia
-│       ├── Skeletonema
-│       ├── Dactyliosolen
-│       ├── Thalassiosira
-│       ├── Guinardia
-│       └── Cerataulina
-└── Unicellular
-    ├── U-Spines
-    │   ├── Corethron
-    │   └── Ditylum
-    └── U-NoSpines
-        ├── Cylindrotheca
-        ├── Coscinodiscus
-        └── Ephemera
-```
+An `_Unknown` class means "this branch, but not resolved to species", the same as a coarse manual ID.
 
 ---
 
-## Model Architecture
+## Limitations
 
-**Source**: `hierroute/model.py`
-
-HierRouteNet consists of two components:
-
-### 1. Shared Backbone
-
-A single convolutional or transformer backbone processes each input image and produces a feature vector shared across all expert classifiers.
-
-| Backbone | Feature Dim | Params | GFLOPs |
-|---|---|---|---|
-| `efficientnet_b0` | 1280 | 5.3M | 0.4 |
-| `swin_t` | 768 | 28.3M | 4.5 |
-| `swin_s` | 768 | 49.6M | 8.7 |
-
-All backbones are initialised from ImageNet pretrained weights.
-
-### 2. Expert Classifiers
-
-One expert is assigned to each internal node in the hierarchy. Each expert receives the shared feature vector and outputs a probability distribution over that node's children.
-
-| Expert Type | Architecture |
-|---|---|
-| `linear` | `Linear(feature_dim → num_children)` |
-| `mlp` | `Linear → ReLU → Linear` (hidden dim = 2× feature_dim) |
-| `cnn` | `Conv2d(1×1) → ReLU → Conv2d(2×2) → ReLU → Flatten → LazyLinear` |
-
-### Routing
-
-**Soft routing** (training): the probability of each leaf is the product of all conditional probabilities along its root-to-leaf path:
-
-```
-P(leaf) = P(child_1 | root) × P(child_2 | node_1) × ... × P(leaf | parent)
-```
-
-**Hard routing** (inference): greedy argmax decisions at each node, guaranteeing structural consistency.
-
-### Loss
-
-Binary cross-entropy (or Focal Loss with γ=2) applied only at leaf node positions, using soft path-product probabilities as inputs and one-hot leaf targets.
+- Images are converted to greyscale and resized to 64 × 64 pixels, so very small particles and fine
+  detail are lost.
+- The model always picks one of the 17 classes. Organisms outside the taxonomy (e.g. veligers or
+  larval fish) are forced into the closest class. Use `confidence_level_*` and `--thresholds` to
+  flag low-confidence predictions.
+- `Zoop-No` has no sub-levels, so its `predicted_level_2` and `predicted_level_3` are empty.
+- Accuracy for rare classes (e.g. Conochilus, Asplanchna) rests on few training images; check them
+  on your own data.
 
 ---
 
-## Results
+## Using it from Python
 
-### Zooplankton-MNR
+```python
+from hierroute import EvaluateOptions, evaluate, load_model
 
-| Backbone | Expert | L1 Acc | L2 Acc | L3 Acc |
-|---|---|---|---|---|
-| EfficientNet-B0 | linear | 0.9974 | 0.9842 | 0.9381 |
-| EfficientNet-B0 | mlp | 0.9978 | 0.9868 | 0.9444 |
-| EfficientNet-B0 | cnn | 0.9979 | 0.9871 | 0.9466 |
-| Swin-T | linear | 0.9980 | 0.9887 | 0.9558 |
-| Swin-T | mlp | 0.9980 | 0.9888 | 0.9558 |
-| **Swin-T** | **cnn** | **0.9981** | **0.9893** | **0.9591** |
+# Same as the evaluate command
+predictions = evaluate(EvaluateOptions(input="crops/", out_dir="results/", labelled=True))
 
-### Plankton-WHOI
-
-| Backbone | Expert | L1 Acc | L2 Acc | L3 Acc |
-|---|---|---|---|---|
-| EfficientNet-B0 | linear | 0.9789 | 0.9642 | 0.8968 |
-| EfficientNet-B0 | mlp | 0.9814 | 0.9673 | 0.9039 |
-| EfficientNet-B0 | cnn | 0.9816 | 0.9680 | 0.9059 |
-| Swin-T | linear | 0.9836 | 0.9727 | 0.9179 |
-| Swin-T | mlp | 0.9849 | 0.9748 | 0.9221 |
-| **Swin-T** | **cnn** | **0.9850** | **0.9751** | **0.9236** |
-
----
-
-## Training
-
-**Source**: `hierroute/trainer.py`
-
-| Hyperparameter | Value |
-|---|---|
-| Optimizer | Adam |
-| Learning rate | 3×10⁻⁴ |
-| Scheduler | CosineAnnealingLR (optional) |
-| Early stopping | patience=5, δ=0.001 |
-| Batch size | 64 |
-| Max epochs | 40 |
-| Gradient clipping | max_norm=1.0 |
-| Data split | 70% train / 10% val / 20% test |
-| Random seed | 666 |
-
-**Augmentation** (applied to training split only):
-- RandomHorizontalFlip
-- RandomVerticalFlip
-- RandomRotation(180°)
-- Padding(5 px)
-- Resize to target resolution
-
----
-
-## Project Structure
-
-```
-Zooplankton_Classification/
-├── hierroute/
-│   ├── __init__.py
-│   ├── constants.py              # Class lists, hierarchy adjacency graphs, data paths
-│   ├── hierarchy.py              # Node and Hierarchy tree data structures
-│   ├── model.py                  # HierRouteNet, Expert, FocalLoss
-│   ├── trainer.py                # Training loop, validation, early stopping, evaluation
-│   ├── data_setup.py             # ImageDataset, HierImageDataset
-│   └── extra_functions.py        # Visualize, set_seed, visualize_swin_attention, visualize_gradcam
-├── training_result/
-│   ├── result.py                 # get_results_table, plot_results_table, plot_confusion_matrix
-│   ├── mnr/                      # One subdirectory per trained MNR model
-│   │   └── <backbone>_<expert>/
-│   │       ├── best_model.pt
-│   │       ├── training_info.json
-│   │       ├── eval_results.json
-│   │       └── predictions.npz
-│   └── whoi/                     # One subdirectory per trained WHOI model
-├── runs/
-│   ├── mnr.ipynb                 # End-to-end training and evaluation notebook (MNR)
-│   ├── whoi.ipynb                # End-to-end training and evaluation notebook (WHOI)
-│   ├── train_bcnn_baseline_mnr.py   # BCNN baseline training script (MNR)
-│   └── train_bcnn_baseline_whoi.py  # BCNN baseline training script (WHOI)
-├── tests/                        # Unit and integration tests (pytest)
-├── .env.example                  # Template for local data path configuration
-└── .env                          # Local data path (gitignored — not pushed)
+# Or load a model directly
+model, config = load_model("noise", device="cuda")      # or load_model(weights="training_result/my_run")
 ```
 
+How the model works:
+
+- A shared backbone (Swin-T, Swin-S or EfficientNet-B0, ImageNet-initialised) extracts features.
+- Each internal node of the taxonomy has its own small "expert" classifier that chooses among that
+  node's children.
+- Training multiplies the experts' probabilities along each root-to-leaf path and applies a binary
+  cross-entropy (or focal) loss at the leaves.
+- Prediction follows the most confident child at every node, so predictions are always valid paths.
+
+The building blocks (`HierRouteNet`, `Trainer`, `ImageDataset`, `HierImageDataset`, `Hierarchy`,
+`Visualize`) are importable from `hierroute` for custom workflows.
+
 ---
 
-## Setup
-
-### 1. Install dependencies
+## Development
 
 ```bash
-pip install torch torchvision numpy scikit-learn seaborn pillow matplotlib python-dotenv
+git clone https://github.com/atjhin/Hierroute.git
+cd Hierroute
+pip install -e ".[dev]"
+pytest
 ```
 
-### 2. Configure the data path
+The test suite runs on CPU with synthetic data and needs no downloads except PyTorch's ImageNet
+weights for a few model tests. New versions are published to PyPI automatically when a GitHub
+release tagged `vX.Y.Z` is created (see `.github/workflows/publish.yml`).
 
-Copy `.env.example` to `.env` and set the path to your local data directory:
+## License
 
-```bash
-cp .env.example .env
-```
-
-Edit `.env`:
-```
-ZOOPLANKTON_DATA_DIR=/path/to/your/data
-```
-
-The data directory should contain the dataset folders (`Processed Data/` for MNR, `WHOI-Plankton/` for WHOI). The `.env` file is gitignored and will never be pushed.
-
-### 3. Load the environment in notebooks
-
-Add this at the top of any notebook, before importing `hierroute`:
-
-```python
-from dotenv import load_dotenv
-load_dotenv()
-```
-
----
-
-## Usage
-
-### 1. Data loading
-
-```python
-from dotenv import load_dotenv
-load_dotenv()
-
-from hierroute.constants import hier_adjacency_graph, data_directory, data_subdirectories, SEED
-from hierroute.data_setup import ImageDataset, HierImageDataset
-from hierroute.extra_functions import set_seed
-
-set_seed(SEED)
-
-dataset = ImageDataset(
-    data_directory      = data_directory,
-    data_subdirectories = data_subdirectories,
-    class_names         = ZOOPLANKTON_CLASSES,
-    max_class_size      = 6000,
-    image_resolution    = 64,
-    format_file         = '.tif',
-    seed                = SEED,
-)
-
-hier_dataset = HierImageDataset(
-    base_dataset    = dataset,
-    adjacency_graph = hier_adjacency_graph,
-    levels          = 3,
-    leaves_only     = True,
-)
-```
-
-For WHOI with merged Guinardia sub-species:
-
-```python
-dataset = ImageDataset(
-    data_directory      = f'{data_directory}/WHOI-Plankton',
-    data_subdirectories = ['2006', '2007', '2008', '2009', '2010', '2011', '2012', '2013', '2014'],
-    class_names         = SELECTED_CLASSES,
-    max_class_size      = 6000,
-    format_file         = '.png',
-    class_folder_map    = {'Guinardia': ['Guinardia_delicatula', 'Guinardia_flaccida', 'Guinardia_striata']},
-    seed                = SEED,
-)
-```
-
-### 2. Build the model
-
-```python
-from hierroute import HierRouteNet
-
-model = HierRouteNet(
-    hierarchy       = hier_dataset.hierarchy,
-    label_to_id     = hier_dataset.label_to_ids,
-    backbone        = 'swin_t',    # or 'efficientnet_b0', 'swin_s'
-    expert_type     = 'cnn',       # or 'linear', 'mlp'
-    freeze_backbone = False,
-)
-```
-
-### 3. Train
-
-```python
-from hierroute import Trainer
-from torchvision import transforms
-
-train_transforms = transforms.Compose([
-    transforms.RandomHorizontalFlip(),
-    transforms.RandomVerticalFlip(),
-    transforms.RandomRotation(180),
-    transforms.Pad(padding=5, fill=0),
-    transforms.Resize((64, 64)),
-    transforms.ToTensor(),
-])
-
-hier_dataset.append_image_transforms(train_transforms, replace=True)
-train_split, val_split, test_split = hier_dataset.split_train_test_val(0.7, 0.1, 0.2)
-train_loader, val_loader, test_loader = hier_dataset.create_dataloaders(
-    batch_size=64,
-    train_indices=train_split,
-    val_indices=val_split,
-    test_indices=test_split,
-    balanced=True,
-)
-
-trainer = Trainer(
-    learning_rate = 3e-4,
-    max_epochs    = 40,
-    device        = 'cuda',
-    model_dir     = 'training_result/mnr/swin_t_cnn',
-)
-trainer.fit(model, train_loader, val_loader, scheduler=True, patience=5, delta=0.001)
-```
-
-### 4. Predict and evaluate
-
-```python
-results = trainer.predict(model, test_loader, save=True)
-# Saves eval_results.json and predictions.npz to model_dir
-```
-
-### 5. Load a saved checkpoint
-
-```python
-model = HierRouteNet(
-    hierarchy       = hier_dataset.hierarchy,
-    label_to_id     = hier_dataset.label_to_ids,
-    backbone        = 'swin_t',
-    expert_type     = 'cnn',
-    checkpoint_dir  = 'training_result/mnr/swin_t_cnn',
-)
-```
-
-### 6. Visualise training and predictions
-
-```python
-from hierroute import Visualize
-
-vis = Visualize('training_result/mnr/swin_t_cnn')
-vis.plot_train()                   # Loss / Accuracy / F1 curves
-vis.plot_pred()                    # Per-level confusion matrices + per-class bar charts
-vis.plot_level_comparison()        # Cross-level Acc/F1/Prec/Rec overview
-vis.plot_class_size_vs_accuracy()  # Sample count vs. accuracy scatter
-```
-
-### 7. Compare all models
-
-```python
-from training_result.result import get_results_table, plot_results_table, plot_confusion_matrix
-
-df  = get_results_table('mnr')
-fig = plot_results_table('mnr', save_path='results_mnr.png')
-fig = plot_confusion_matrix('mnr/swin_t_cnn', save_path='cm.png')
-```
-
-### 8. Attention visualisation (Swin-T only)
-
-```python
-from hierroute import visualize_swin_attention
-from hierroute.extra_functions import visualize_gradcam
-
-# Self-attention maps from stage 7
-fig = visualize_swin_attention(model, img_tensor, stage=7, overlay=True, label='Calanoid')
-
-# Grad-CAM weighted by hierarchy level
-fig = visualize_gradcam(model, img_tensor, target_leaf='Calanoid',
-                        weights=[1, 1, 1], stage=7)  # full path
-fig = visualize_gradcam(model, img_tensor, target_leaf='Calanoid',
-                        weights=[0, 0, 1], stage=7)  # species level only
-```
-
----
-
-## Tests
-
-```bash
-cd Zooplankton_Classification && python -m pytest tests/ -v
-```
-
-| File | Coverage |
-|------|---------|
-| `test_hierarchy.py` | `Node`, `Hierarchy` (21 tests) |
-| `test_model.py` | `FocalLoss`, `Expert`, `HierRouteNet` (25 tests) |
-| `test_trainer.py` | `Trainer.fit`, `predict`, `evaluate` (8 tests) |
-| `test_extra_functions.py` | `set_seed`, `Visualize` (5 tests) |
-| `test_integration.py` | Full end-to-end pipeline (1 test) |
-
----
-
-## Reproducibility
-
-All experiments use `set_seed(666)`, which seeds Python, NumPy, PyTorch CPU/GPU, and enables `cudnn.deterministic`. Device support: Apple Silicon MPS, CUDA GPU, CPU.
+MIT, see [LICENSE](LICENSE). Authors: Alexander Tjhin, Emily Hassal, Dak de Kerckhove.

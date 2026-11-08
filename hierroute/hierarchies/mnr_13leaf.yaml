@@ -1,0 +1,27 @@
+# Simplified freshwater zooplankton taxonomy (Ontario MNR), 13 leaves, 3 levels.
+# Mirrors hierroute.constants.hier_adjacency_graph / ZOOPLANKTON_CLASSES / MNR_CLASS_FOLDER_MAP.
+name: mnr_13leaf
+tree:
+  root: [Zoop-yes, Zoop-No]
+  Zoop-yes: [Copepoda, Cladocera, Rotifer]
+  Zoop-No: [Bubbles, Exoskeleton, Fiber, Plant_Matter]
+  Copepoda: [Cyclopoid, Calanoid, Harpacticoid, Nauplius_Copepod]
+  Cladocera: [Bosminidae, Daphnia, Diaphonosoma]
+  Fiber: [Fiber_Hairlike, Fiber_Squiggly]
+  Rotifer: []
+  Bubbles: []
+  Exoskeleton: []
+  Plant_Matter: []
+  Fiber_Squiggly: []
+  Fiber_Hairlike: []
+  Cyclopoid: []
+  Calanoid: []
+  Harpacticoid: []
+  Nauplius_Copepod: []
+  Bosminidae: []
+  Daphnia: []
+  Diaphonosoma: []
+classes: [Bubbles, Exoskeleton, Plant_Matter, Fiber_Squiggly, Fiber_Hairlike, Copepoda, Calanoid, Cyclopoid,
+  Harpacticoid, Cladocera, Bosminidae, Daphnia, Rotifer, Nauplius_Copepod, Diaphonosoma]
+folder_map:
+  Diaphonosoma: [Diaphonosoma, Sididae]

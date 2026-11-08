@@ -1,0 +1,20 @@
+# Local configuration
+.env
+*.code-workspace
+
+# Data and experiment outputs (never committed; released weights live on GitHub Releases)
+data_temp/
+training_result/
+runs/inference_results/
+hier_zooplankton_csv_data_list.csv
+*.pt
+*.pth
+*.npz
+
+# Python build artifacts
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+.pytest_cache/
