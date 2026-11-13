@@ -87,6 +87,9 @@ hierroute evaluate my_particle_images/ --out results/
 Each command prints what it found and where it saved its results. Add `-h` to any command for all
 of its options (for example `hierroute evaluate -h`).
 
+For a worked example in Python (preprocess → train → inference on the lab's data), see the
+[example notebooks](https://github.com/atjhin/Hierroute/tree/main/examples).
+
 ---
 
 ## Input layouts
