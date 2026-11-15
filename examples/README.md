@@ -22,10 +22,10 @@ jupyter lab            # then open the notebooks in this folder
 
 - **Data:** the notebooks read the internal dataset at `/data/Hier-Zooplankton`. If your copy is
   elsewhere, change `DATA_DIR` in the first code cell of each notebook.
-- **Outputs:** everything they write goes under `~/hierroute_example/` (`WORK_DIR`):
-  - the Erie crops, about 360 MB
-  - the trained model, about 115 MB
-  - the results
+- **Outputs** (paths relative to the notebooks; git ignores all of them):
+  - `train.ipynb`: the trained model (about 115 MB) in `../training_result/`
+  - `inference.ipynb`: the evaluation results in `../inference_result/`
+  - `preprocess.ipynb`: the Erie crops (about 360 MB) in `~/hierroute_example/` (`WORK_DIR`)
 - **Weights:** the released model weights download on first use into `~/.cache/hierroute` (115 MB per
   model).
 - **No GPU?** Everything also runs on CPU, just more slowly. Training is the slowest part.

@@ -2,10 +2,14 @@
 .env
 *.code-workspace
 
-# Data and experiment outputs (never committed; released weights live on GitHub Releases)
+# Data and experiment outputs (released weights live on GitHub Releases; only selected
+# reference results under inference_result/ are committed: their plots only -- not their
+# predictions.csv files, nor the notebooks' *_example runs)
 data_temp/
 training_result/
 runs/inference_results/
+inference_result/*_example/
+inference_result/**/predictions.csv
 hier_zooplankton_csv_data_list.csv
 *.pt
 *.pth
